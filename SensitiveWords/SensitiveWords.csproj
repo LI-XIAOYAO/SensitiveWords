@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<Authors>Lxy</Authors>
+		<Description>字符串脱敏，输入输出多种处理模式，支持字符、拼音、简拼、同音字等替换模式，支持正则。</Description>
+		<PackageTags>SensitiveWords;Words;string</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/LI-XIAOYAO/SensitiveWords</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/LI-XIAOYAO/SensitiveWords</RepositoryUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<VersionPrefix>1.0.0</VersionPrefix>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
+	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Json" Version="2.2.0" />
+	  <PackageReference Include="PinYinConverterCore" Version="1.0.2" />
+	</ItemGroup>
+
+</Project>

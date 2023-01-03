@@ -1,112 +1,112 @@
 # SensitiveWords
-×Ö·û´®ÍÑÃô£¬ÊäÈëÊä³ö¶àÖÖ´¦ÀíÄ£Ê½£¬Ö§³Ö×Ö·û¡¢Æ´Òô¡¢¼òÆ´¡¢Í¬Òô×ÖµÈÌæ»»Ä£Ê½£¬Ö§³ÖÕıÔò¡£
+å­—ç¬¦ä¸²è„±æ•ï¼Œè¾“å…¥è¾“å‡ºå¤šç§å¤„ç†æ¨¡å¼ï¼Œæ”¯æŒå­—ç¬¦ã€æ‹¼éŸ³ã€ç®€æ‹¼ã€åŒéŸ³å­—ç­‰æ›¿æ¢æ¨¡å¼ï¼Œæ”¯æŒæ­£åˆ™ã€‚
 
-#### °²×°
+#### å®‰è£…
 > Install-Package SensitiveWords
 
-#### Ê¹ÓÃ
+#### ä½¿ç”¨
 ```c#
-// Web×¢Èë·½Ê½£¬¸ù¾İÅäÖÃ×Ô¶¯´¦ÀíÊäÈëÊä³ö
+// Webæ³¨å…¥æ–¹å¼ï¼Œæ ¹æ®é…ç½®è‡ªåŠ¨å¤„ç†è¾“å…¥è¾“å‡º
 services.AddSensitiveWords(sensitiveWordsOptions =>
 {
     sensitiveWordsOptions.Add(new SensitiveWordsOptions(HandleOptions.Input, ReplaceOptions.Character, "*", true, false, GroupReplaceOptions.GroupPriority)
-        .Add("Å£Æ¤|·´¶Ô"));
+        .Add("ç‰›çš®|åå¯¹"));
     sensitiveWordsOptions.Add(new SensitiveWordsOptions(HandleOptions.Output, ReplaceOptions.Character, "*", true, false, GroupReplaceOptions.GroupPriority)
         .Add(@"\w{4}(\w+(?:[-+.]\w+)*)@\w+(?:[-.]\w+)*\.\w+(?:[-.]\w+)*")
         .Add(@"(?:13[0-9]|14[0-14-9]|15[0-35-9]|16[25-7]|17[0-8]|18[0-9]|19[0-35-9])(\d{4})\d{4}")
     );
 });
 
-// Ö±½Óµ÷ÓÃ
+// ç›´æ¥è°ƒç”¨
 SensitiveWordsResolver.Desensitize("...");
-// À©Õ¹·½·¨
+// æ‰©å±•æ–¹æ³•
 "...".Desensitize();
 
 ```
 
-#### Ê¾Àı
+#### ç¤ºä¾‹
 ```c#
 using SensitiveWords;
 ...
 {
-	// ³õÊ¼»¯ÅäÖÃ
+	// åˆå§‹åŒ–é…ç½®
 	SensitiveWordsResolver.Config(options =>
 	{
-		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true).Add("°¡°¡|zf|666"));
-		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "?", true).Add("²Ù|ÎÄ|NM"));
+		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true).Add("å•Šå•Š|zf|666"));
+		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "?", true).Add("æ“|æ–‡|NM"));
 		options.Add(new SensitiveWordsOptions(HandleOptions.Default | HandleOptions.Output, ReplaceOptions.Character, "*", true, groupReplaceOptions: GroupReplaceOptions.GroupPriority)
             .Add(@"\w{4}(\w+(?:[-+.]\w+)*)@\w+(?:[-.]\w+)*\.\w+(?:[-.]\w+)*")
             .Add(@"(?:13[0-9]|14[0-14-9]|15[0-35-9]|16[25-7]|17[0-8]|18[0-9]|19[0-35-9])(\d{4})\d{4}")
         );
 	});
 
-	var text = "zfÕâÊÇÊ²Ã´²Ù×÷°¡°¡¡­¡­666 nm";
-	// À©Õ¹·½·¨µ÷ÓÃ
-	text.Desensitize(); // Output: **ÕâÊÇÊ²Ã´?×÷**¡­¡­*** ??
-	// ·½·¨µ÷ÓÃ
-	SensitiveWordsResolver.Desensitize(text); // Output: **ÕâÊÇÊ²Ã´?×÷**¡­¡­*** ??
+	var text = "zfè¿™æ˜¯ä»€ä¹ˆæ“ä½œå•Šå•Šâ€¦â€¦666 nm";
+	// æ‰©å±•æ–¹æ³•è°ƒç”¨
+	text.Desensitize(); // Output: **è¿™æ˜¯ä»€ä¹ˆ?ä½œ**â€¦â€¦*** ??
+	// æ–¹æ³•è°ƒç”¨
+	SensitiveWordsResolver.Desensitize(text); // Output: **è¿™æ˜¯ä»€ä¹ˆ?ä½œ**â€¦â€¦*** ??
 
 	var mail = "test123@mail.com";
 	var phone = "13623332333";
 
-	// ÍÑÃôÄ¬ÈÏ
+	// è„±æ•é»˜è®¤
 	mail.Desensitize(); // Output: test***@mail.com
-	// ÍÑÃôÊäÈë
+	// è„±æ•è¾“å…¥
 	mail.DesensitizeInput(); // Output: test123@mail.com
 	phone.DesensitizeInput(); // Output: 13623332333
-	// ÍÑÃôÊä³ö
+	// è„±æ•è¾“å‡º
 	mail.DesensitizeOutput(); // Output: test***@mail.com
 	phone.DesensitizeOutput(); // Output: 136****2333
-	// ÍÑÃôËùÓĞ
+	// è„±æ•æ‰€æœ‰
 	mail.DesensitizeAll(); // Output: test***@mail.com
 	phone.DesensitizeAll(); // Output: 136****2333
 
 	SensitiveWordsResolver.Config(options =>
 		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true, groupReplaceOptions: GroupReplaceOptions.GroupPriority)
-			.Add(@"ÕşÖÎ(?!ÀÏÊ¦|¼Ò)")
+			.Add(@"æ”¿æ²»(?!è€å¸ˆ|å®¶)")
 		)
 	);
-	"Ò»¸öÕşÖÎÀÏÊ¦ÔÚÌ¸ÕşÖÎ»°Ìâ".Desensitize(); // Output: Ò»¸öÕşÖÎÀÏÊ¦ÔÚÌ¸**»°Ìâ
+	"ä¸€ä¸ªæ”¿æ²»è€å¸ˆåœ¨è°ˆæ”¿æ²»è¯é¢˜".Desensitize(); // Output: ä¸€ä¸ªæ”¿æ²»è€å¸ˆåœ¨è°ˆ**è¯é¢˜
 
-	// Ö§³ÖÆ´ÒôµÈÌæ»»Ä£Ê½
+	// æ”¯æŒæ‹¼éŸ³ç­‰æ›¿æ¢æ¨¡å¼
 	SensitiveWordsResolver.Config(options =>
 	{
-		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.PinYin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("³¾°£|¾Æ"));
-		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.JianPin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("ÆĞÌá|±¾À´"));
-		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Homophone, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("ÖÕÉí"));
+		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.PinYin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("å°˜åŸƒ|é…’"));
+		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.JianPin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("è©æ|æœ¬æ¥"));
+		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Homophone, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("ç»ˆèº«"));
 	});
 
-	"ÆĞÌá±¾ÎŞÊ÷£¬Ã÷¾µÒà·ÇÌ¨¡£±¾À´ÎŞÒ»Îï£¬ºÎ´¦ÈÇ³¾°££¡Öª×ã³£ÀÖ£¬ÖÕÉí²»Èè£¬½ñ³¯ÓĞ¾Æ½ñ³¯×í£¬Ã÷ÈÕ³îÀ´Ã÷ÈÕ³î¡£".Desensitize(); // Output: pt±¾ÎŞÊ÷£¬Ã÷¾µÒà·ÇÌ¨¡£blÎŞÒ»Îï£¬ºÎ´¦ÈÇchenai£¡Öª×ã³£ÀÖ£¬ÖĞÉì²»Èè£¬½ñ³¯ÓĞjiu½ñ³¯×í£¬Ã÷ÈÕ³îÀ´Ã÷ÈÕ³î¡£
+	"è©ææœ¬æ— æ ‘ï¼Œæ˜é•œäº¦éå°ã€‚æœ¬æ¥æ— ä¸€ç‰©ï¼Œä½•å¤„æƒ¹å°˜åŸƒï¼çŸ¥è¶³å¸¸ä¹ï¼Œç»ˆèº«ä¸è¾±ï¼Œä»Šæœæœ‰é…’ä»Šæœé†‰ï¼Œæ˜æ—¥æ„æ¥æ˜æ—¥æ„ã€‚".Desensitize(); // Output: ptæœ¬æ— æ ‘ï¼Œæ˜é•œäº¦éå°ã€‚blæ— ä¸€ç‰©ï¼Œä½•å¤„æƒ¹chenaiï¼çŸ¥è¶³å¸¸ä¹ï¼Œä¸­ä¼¸ä¸è¾±ï¼Œä»Šæœæœ‰jiuä»Šæœé†‰ï¼Œæ˜æ—¥æ„æ¥æ˜æ—¥æ„ã€‚
 }
 ```
 
-#### ÆäËû
-ÌØĞÔ£º
-- ºöÂÔÌØĞÔ `IgnoreSensitiveWordsAttribute`
-- Ö¸¶¨´¦Àí±êÇ©ÌØĞÔ `SensitiveWordsAttribute` Í¨¹ı `new SensitiveWordsOptions().SetTag("Tag")` ÅäÖÃ±êÇ©
+#### å…¶ä»–
+ç‰¹æ€§ï¼š
+- å¿½ç•¥ç‰¹æ€§ `IgnoreSensitiveWordsAttribute`
+- æŒ‡å®šå¤„ç†æ ‡ç­¾ç‰¹æ€§ `SensitiveWordsAttribute` é€šè¿‡ `new SensitiveWordsOptions().SetTag("Tag")` é…ç½®æ ‡ç­¾
 
-`SensitiveWordsOptions`£ºÃô¸Ğ´ÊÅäÖÃÑ¡Ïî
-- ÊôĞÔ
-	- `HandleOptions` ´¦ÀíÑ¡Ïî
-		- `Default`£ºÄ¬ÈÏ
-		- `Input`£ºÊäÈë
-		- `Output`£ºÊä³ö
-	- `ReplaceOptions` Ìæ»»Ñ¡Ïî
-		- `Character`£º×Ö·û
-		- `PinYin`£ºÆ´Òô
-		- `JianPin`£º¼òÆ´
-		- `Homophone`£ºÍ¬Òô×Ö
-	- `Character` Ìæ»»×Ö·û´® `ReplaceOptions.Character` Ê±ÉúĞ§
-	- `IgnoreCase` ºöÂÔ´óĞ¡Ğ´
-	- `ReplaceSingle` Ìæ»»Îªµ¥¸ö²»²¹Î»£¬Ä¬ÈÏ `false` ²¹Î»ÖÁÃô¸Ğ´Ê³¤¶È
-	- `GroupReplaceOptions` ×éÌæ»»Ñ¡Ïî
-		- `Default`£ºÄ¬ÈÏÌæ»»Æ¥Åäµ½µÄÖµ
-		- `GroupOnly`£ºÖ»Ìæ»»ÕıÔò×é
-		- `GroupPriority`£º×éÓÅÏÈ£¬´æÔÚ×é¾ÍÌæ»»×é²»´æÔÚ¾ÍÄ¬ÈÏÌæ»»
-	- `Tag` ±êÇ©£¬¿ÉÍ¨¹ıÌØĞÔ `SensitiveWordsAttribute` Ö¸¶¨´¦Àí
-- ·½·¨
-	- `Add` Ìí¼ÓÃô¸Ğ´Ê£¬¶à¸öÓ¢ÎÄÊúÏß|·Ö¸ô£¬°üº¬ÊúÏßĞèÒª×ªÒå£¬Ö§³ÖÕıÔò
-	- `AddFile` Ìí¼ÓÎÄ¼şÃô¸Ğ´Ê£¬ÎÄ±¾ÄÚÈİ¹æÔòÒ»ÖÂ
-	- `SetTag` ÉèÖÃ±êÇ©
+`SensitiveWordsOptions`ï¼šæ•æ„Ÿè¯é…ç½®é€‰é¡¹
+- å±æ€§
+	- `HandleOptions` å¤„ç†é€‰é¡¹
+		- `Default`ï¼šé»˜è®¤
+		- `Input`ï¼šè¾“å…¥
+		- `Output`ï¼šè¾“å‡º
+	- `ReplaceOptions` æ›¿æ¢é€‰é¡¹
+		- `Character`ï¼šå­—ç¬¦
+		- `PinYin`ï¼šæ‹¼éŸ³
+		- `JianPin`ï¼šç®€æ‹¼
+		- `Homophone`ï¼šåŒéŸ³å­—
+	- `Character` æ›¿æ¢å­—ç¬¦ä¸² `ReplaceOptions.Character` æ—¶ç”Ÿæ•ˆ
+	- `IgnoreCase` å¿½ç•¥å¤§å°å†™
+	- `ReplaceSingle` æ›¿æ¢ä¸ºå•ä¸ªä¸è¡¥ä½ï¼Œé»˜è®¤ `false` è¡¥ä½è‡³æ•æ„Ÿè¯é•¿åº¦
+	- `GroupReplaceOptions` ç»„æ›¿æ¢é€‰é¡¹
+		- `Default`ï¼šé»˜è®¤æ›¿æ¢åŒ¹é…åˆ°çš„å€¼
+		- `GroupOnly`ï¼šåªæ›¿æ¢æ­£åˆ™ç»„
+		- `GroupPriority`ï¼šç»„ä¼˜å…ˆï¼Œå­˜åœ¨ç»„å°±æ›¿æ¢ç»„ä¸å­˜åœ¨å°±é»˜è®¤æ›¿æ¢
+	- `Tag` æ ‡ç­¾ï¼Œå¯é€šè¿‡ç‰¹æ€§ `SensitiveWordsAttribute` æŒ‡å®šå¤„ç†
+- æ–¹æ³•
+	- `Add` æ·»åŠ æ•æ„Ÿè¯ï¼Œå¤šä¸ªè‹±æ–‡ç«–çº¿|åˆ†éš”ï¼ŒåŒ…å«ç«–çº¿éœ€è¦è½¬ä¹‰ï¼Œæ”¯æŒæ­£åˆ™
+	- `AddFile` æ·»åŠ æ–‡ä»¶æ•æ„Ÿè¯ï¼Œæ–‡æœ¬å†…å®¹è§„åˆ™ä¸€è‡´
+	- `SetTag` è®¾ç½®æ ‡ç­¾
 
-¶àÒô×Ö´Ê×éÌí¼Ó£º`SensitiveWordsResolver.RegisterHomophoneRegexWordGroup(...)` ´æÔÚ¶àÒô×ÖÊ±ÎŞ·¨Çø·Ö£¬¿ÉÍ¨¹ıÌí¼Ó´Ê×éÈ·¶¨
+å¤šéŸ³å­—è¯ç»„æ·»åŠ ï¼š`SensitiveWordsResolver.RegisterHomophoneRegexWordGroup(...)` å­˜åœ¨å¤šéŸ³å­—æ—¶æ— æ³•åŒºåˆ†ï¼Œå¯é€šè¿‡æ·»åŠ è¯ç»„ç¡®å®š

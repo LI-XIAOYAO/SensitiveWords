@@ -2,7 +2,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using SensitiveWordsTests;
-using System.IO;
 using System.Threading.Tasks;
 using Xunit;
 

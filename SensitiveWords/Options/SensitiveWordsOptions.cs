@@ -28,7 +28,7 @@ namespace SensitiveWords
         /// <summary>
         /// FullPaths
         /// </summary>
-        private ISet<string> _fullPaths = new HashSet<string>();
+        private readonly ISet<string> _fullPaths = new HashSet<string>();
 
         /// <summary>
         /// 敏感词选项
@@ -102,7 +102,7 @@ namespace SensitiveWords
         public string Tag { get; set; }
 
         /// <summary>
-        /// 添加敏感词，多个英文竖线|分隔，包含竖线需要转义
+        /// 添加敏感词，多个英文竖线|分隔，包含竖线需要转义，支持正则
         /// </summary>
         /// <param name="words"></param>
         public SensitiveWordsOptions Add(string words)

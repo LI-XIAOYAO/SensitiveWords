@@ -70,14 +70,13 @@ using SensitiveWords;
 
 	// 支持拼音等替换模式
 	SensitiveWordsResolver.Config(options =>
-    {
-        options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.PinYin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("尘埃|酒"));
-        options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.JianPin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("菩提|本来"));
-        options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Homophone, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("终身"));
-    });
+	{
+		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.PinYin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("尘埃|酒"));
+		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.JianPin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("菩提|本来"));
+		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Homophone, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("终身"));
+	});
 
 	"菩提本无树，明镜亦非台。本来无一物，何处惹尘埃！知足常乐，终身不辱，今朝有酒今朝醉，明日愁来明日愁。".Desensitize(); // Output: pt本无树，明镜亦非台。bl无一物，何处惹chenai！知足常乐，中伸不辱，今朝有jiu今朝醉，明日愁来明日愁。
-
 }
 ```
 

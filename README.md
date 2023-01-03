@@ -41,9 +41,9 @@ using SensitiveWords;
 		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true).Add("啊啊|zf|666"));
 		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "?", true).Add("操|文|NM"));
 		options.Add(new SensitiveWordsOptions(HandleOptions.Default | HandleOptions.Output, ReplaceOptions.Character, "*", true, groupReplaceOptions: GroupReplaceOptions.GroupPriority)
-            .Add(@"\w{4}(\w+(?:[-+.]\w+)*)@\w+(?:[-.]\w+)*\.\w+(?:[-.]\w+)*")
-            .Add(@"(?:13[0-9]|14[0-14-9]|15[0-35-9]|16[25-7]|17[0-8]|18[0-9]|19[0-35-9])(\d{4})\d{4}")
-        );
+			.Add(@"\w{4}(\w+(?:[-+.]\w+)*)@\w+(?:[-.]\w+)*\.\w+(?:[-.]\w+)*")
+			.Add(@"(?:13[0-9]|14[0-14-9]|15[0-35-9]|16[25-7]|17[0-8]|18[0-9]|19[0-35-9])(\d{4})\d{4}")
+		);
 	});
 
 	var text = "zf这是什么操作啊啊……666 nm";

@@ -10,7 +10,7 @@
 		<PackageProjectUrl>https://github.com/LI-XIAOYAO/SensitiveWords</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/LI-XIAOYAO/SensitiveWords</RepositoryUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<VersionPrefix>1.0.1</VersionPrefix>
+		<VersionPrefix>1.0.2</VersionPrefix>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -21,7 +21,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
 	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Json" Version="2.2.0" />
 	  <PackageReference Include="PinYinConverterCore" Version="1.0.2" />
 	</ItemGroup>

@@ -109,10 +109,16 @@ using SensitiveWords;
 		- `Default`：默认替换匹配到的值
 		- `GroupOnly`：只替换正则组
 		- `GroupPriority`：组优先，存在组就替换组不存在就默认替换
+	- `IsMaxMatch`：优先匹配最大长度（正则下不生效）
+	- `WhiteSpaceOptions`：空字符选项
+    	- `Default`：默认不处理
+    	- `IgnoreWhiteSpace`：忽略空字符
+    	- `IgnoreNewLine`：忽略换行符
 	- `Tag` 标签，可通过特性 `SensitiveWordsAttribute` 指定处理
 - 方法
 	- `Add` 添加敏感词，多个英文竖线|分隔，包含竖线需要转义，支持正则
 	- `AddFile` 添加文件敏感词，文本内容规则一致
 	- `SetTag` 设置标签
+	- `Remove` 删除敏感词
 
 多音字词组添加：`SensitiveWordsResolver.RegisterHomophoneRegexWordGroup(...)` 存在多音字时无法区分，可通过添加词组确定

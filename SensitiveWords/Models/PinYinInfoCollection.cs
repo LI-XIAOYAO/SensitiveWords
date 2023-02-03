@@ -1,12 +1,11 @@
-﻿using System.Collections.ObjectModel;
-using System.Text;
+﻿using System.Text;
 
 namespace SensitiveWords
 {
     /// <summary>
     /// 拼音信息集合
     /// </summary>
-    public class PinYinInfoCollection : Collection<PinYinInfo>
+    public class PinYinInfoCollection : InternalReadOnlyCollection<PinYinInfo>
     {
         /// <summary>
         /// 字符串
@@ -29,46 +28,44 @@ namespace SensitiveWords
         public string Homophone { get; private set; }
 
         /// <summary>
-        /// InsertItem
+        /// <inheritdoc/>
         /// </summary>
-        /// <param name="index"></param>
         /// <param name="item"></param>
-        protected override void InsertItem(int index, PinYinInfo item)
+        protected internal override void Add(PinYinInfo item)
         {
-            base.InsertItem(index, item);
+            base.Add(item);
 
             Refresh();
         }
 
         /// <summary>
-        /// SetItem
+        /// <inheritdoc/>
         /// </summary>
-        /// <param name="index"></param>
         /// <param name="item"></param>
-        protected override void SetItem(int index, PinYinInfo item)
+        protected internal override void Remove(PinYinInfo item)
         {
-            base.SetItem(index, item);
+            base.Remove(item);
 
             Refresh();
         }
 
         /// <summary>
-        /// RemoveItem
+        /// <inheritdoc/>
         /// </summary>
         /// <param name="index"></param>
-        protected override void RemoveItem(int index)
+        protected internal override void RemoveAt(int index)
         {
-            base.RemoveItem(index);
+            base.RemoveAt(index);
 
             Refresh();
         }
 
         /// <summary>
-        /// ClearItems
+        /// <inheritdoc/>
         /// </summary>
-        protected override void ClearItems()
+        protected internal override void Clear()
         {
-            base.ClearItems();
+            base.Clear();
 
             Refresh();
         }

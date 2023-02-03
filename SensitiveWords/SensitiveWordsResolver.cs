@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
@@ -14,13 +13,13 @@ namespace SensitiveWords
         /// <summary>
         /// 敏感词处理选项
         /// </summary>
-        public static IList<SensitiveWordsOptions> Options { get; } = new List<SensitiveWordsOptions>();
+        public static SensitiveWordsOptionsCollection Options { get; } = new SensitiveWordsOptionsCollection();
 
         /// <summary>
         /// 配置敏感词处理选项
         /// </summary>
         /// <param name="sensitiveWordsOptions"></param>
-        public static void Config(Action<IList<SensitiveWordsOptions>> sensitiveWordsOptions)
+        public static void Config(Action<SensitiveWordsOptionsCollection> sensitiveWordsOptions)
         {
             sensitiveWordsOptions?.Invoke(Options);
         }

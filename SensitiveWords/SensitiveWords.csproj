@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFrameworks>netstandard2.0;net7.0</TargetFrameworks>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<Authors>Lxy</Authors>
 		<Description>字符串脱敏，输入输出多种处理模式，支持字符、拼音、简拼、同音字等替换模式，支持正则。</Description>
@@ -10,7 +10,7 @@
 		<PackageProjectUrl>https://github.com/LI-XIAOYAO/SensitiveWords</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/LI-XIAOYAO/SensitiveWords</RepositoryUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<VersionPrefix>1.0.2</VersionPrefix>
+		<VersionPrefix>1.0.3</VersionPrefix>
 	</PropertyGroup>
 
 	<ItemGroup>

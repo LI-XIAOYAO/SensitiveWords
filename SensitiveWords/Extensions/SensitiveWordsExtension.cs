@@ -2,7 +2,6 @@
 using SensitiveWords;
 using SensitiveWords.Filters;
 using System;
-using System.Collections.Generic;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -16,12 +15,16 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </summary>
         /// <param name="serviceDescriptors"></param>
         /// <param name="sensitiveWordsOptions"></param>
+        /// <param name="isAddFilter"></param>
         /// <returns></returns>
-        public static IServiceCollection AddSensitiveWords(this IServiceCollection serviceDescriptors, Action<IList<SensitiveWordsOptions>> sensitiveWordsOptions)
+        public static IServiceCollection AddSensitiveWords(this IServiceCollection serviceDescriptors, Action<SensitiveWordsOptionsCollection> sensitiveWordsOptions, bool isAddFilter = true)
         {
             sensitiveWordsOptions?.Invoke(SensitiveWordsResolver.Options);
 
-            serviceDescriptors.Configure<MvcOptions>(mvcOptions => mvcOptions.Filters.Add<SensitiveWordsActionFilter>());
+            if (isAddFilter)
+            {
+                serviceDescriptors.Configure<MvcOptions>(mvcOptions => mvcOptions.Filters.Add<SensitiveWordsActionFilter>());
+            }
 
             return serviceDescriptors;
         }

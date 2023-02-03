@@ -2,6 +2,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using SensitiveWordsTests;
+using System;
+using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -99,6 +102,18 @@ namespace SensitiveWords.Tests
             });
 
             Assert.Equal("pt本无树，明镜亦非台。bl无一物，何处惹chenai！知足常乐，中伸不辱，今朝有jiu今朝醉，明日愁来明日愁。", "菩提本无树，明镜亦非台。本来无一物，何处惹尘埃！知足常乐，终身不辱，今朝有酒今朝醉，明日愁来明日愁。".Desensitize());
+
+            SensitiveWordsResolver.Options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true, false, GroupReplaceOptions.GroupPriority, false)
+                .Add("你是不是傻啊|你是不是傻")
+            );
+
+            Assert.Equal("*****啊", "你是不是傻啊".Desensitize());
+
+            SensitiveWordsResolver.Options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true, false, GroupReplaceOptions.GroupPriority)
+                .Add("你是不是笨啊|你是不是笨")
+            );
+
+            Assert.Equal("******", "你是不是笨啊".Desensitize());
         }
 
         [Fact()]
@@ -128,6 +143,62 @@ namespace SensitiveWords.Tests
             var httpClient = application.CreateClient();
             var response = await httpClient.GetStringAsync("User/GetUser?name=专家只会吹牛皮");
             Assert.Equal("{\"name\":\"专家只会吹**\",\"mail\":\"1122****@mail.com\",\"phone\":\"166****3333\"}", response);
+        }
+
+        [InlineData(true)]
+        [InlineData(false)]
+        [Theory]
+        public void NodeTest(bool isMaxMatch)
+        {
+            SensitiveWordsResolver.Config(options =>
+            {
+                SensitiveWordsResolver.Options.Clear();
+
+                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true, isMaxMatch: isMaxMatch, whiteSpaceOptions: isMaxMatch ? WhiteSpaceOptions.IgnoreWhiteSpace | WhiteSpaceOptions.IgnoreNewLine : WhiteSpaceOptions.Default)
+                    .AddFile(  "Words.txt"));
+            });
+
+            var array = new[] { "ABD", "abde", "ABCGH", "A", "AB", "ABC", "BCD", "E", "EF", "AD", "ADF", "AE", "JLB", "JBLL", "JLFD", "JLFDE", "JLFB", "JLFBA", "JLFBD", "CO" };
+
+            var wordsNodes = WordsNodes.Build(array);
+            var words = wordsNodes.GetWords();
+            foreach (var item in words)
+            {
+                Debug.Write($"{item} ");
+            }
+
+            var text = "KABCOOJLFDEEF";
+
+            var nodeCaptures = wordsNodes.Matches(text, isMaxMatch);
+            var replace = wordsNodes.Replace(text, c => $"({c.Value})", isMaxMatch);
+            if (isMaxMatch)
+            {
+                Assert.Equal("K(ABC)OO(JLFDE)(EF)", replace);
+            }
+            else
+            {
+                Assert.Equal("K(A)B(CO)O(JLFD)(E)(E)F", replace);
+            }
+
+            Debug.WriteLine(string.Empty);
+            Debug.WriteLine(text);
+            Debug.WriteLine(replace);
+
+            text = "他家老大对老  二说狗屁\r\n专家KJHGO";
+            replace = text.Desensitize();
+
+            if (isMaxMatch)
+            {
+                Assert.Equal("他家老大对**说****KJHGO", replace);
+            }
+            else
+            {
+                Assert.Equal("他家老大对老  二说**\r\n专家KJHGO", replace);
+            }
+
+            Debug.WriteLine(string.Empty);
+            Debug.WriteLine(text);
+            Debug.WriteLine(replace);
         }
     }
 }

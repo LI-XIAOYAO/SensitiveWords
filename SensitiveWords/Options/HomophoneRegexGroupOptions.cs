@@ -12,7 +12,7 @@ namespace SensitiveWords
         /// <summary>
         /// FullPaths
         /// </summary>
-        private readonly ISet<string> _fullPaths = new HashSet<string>();
+        private static readonly ISet<string> _fullPaths = new HashSet<string>();
 
         /// <summary>
         /// HomophoneRegexMaps

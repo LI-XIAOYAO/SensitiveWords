@@ -93,7 +93,7 @@ namespace SensitiveWords
                         if (node.IsEnd && !(isMaxMatch && node.HasNodes()))
                         {
                             nodeCaptures.Add(new NodeCapture(position, i - position + 1));
-                            position = i;
+                            position = i - 1;
                         }
                         else
                         {
@@ -103,7 +103,7 @@ namespace SensitiveWords
                             if (node.IsEnd && p == position)
                             {
                                 nodeCaptures.Add(new NodeCapture(position, i - position));
-                                position = i;
+                                position = i - 1;
                             }
                         }
                     }

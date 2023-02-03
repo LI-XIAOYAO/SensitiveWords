@@ -235,26 +235,23 @@ namespace SensitiveWords
             {
                 stack.Push(value);
 
-                if (type.IsArray || type.IsGenericType)
+                if (value is IDictionary dic)
                 {
-                    if (value is IDictionary dic)
+                    foreach (DictionaryEntry item in dic)
                     {
-                        foreach (DictionaryEntry item in dic)
+                        if (null != item.Value)
                         {
-                            if (null != item.Value)
-                            {
-                                dic[item.Key] = item.Value.Desensitize(stack, func);
-                            }
+                            dic[item.Key] = item.Value.Desensitize(stack, func);
                         }
                     }
-                    else if (value is IList list)
+                }
+                else if (value is IList list)
+                {
+                    for (int i = 0; i < list.Count; i++)
                     {
-                        for (int i = 0; i < list.Count; i++)
+                        if (null != list[i])
                         {
-                            if (null != list[i])
-                            {
-                                list[i] = list[i].Desensitize(stack, func);
-                            }
+                            list[i] = list[i].Desensitize(stack, func);
                         }
                     }
                 }
@@ -453,31 +450,28 @@ namespace SensitiveWords
             {
                 stack.Push(value);
 
-                if (type.IsArray || type.IsGenericType)
+                if (value is IDictionary dic)
                 {
-                    if (value is IDictionary dic)
+                    foreach (DictionaryEntry item in dic)
                     {
-                        foreach (DictionaryEntry item in dic)
+                        if (null != item.Value)
                         {
-                            if (null != item.Value)
+                            if (item.Value.ContainsSensitiveWords(stack, func))
                             {
-                                if (item.Value.ContainsSensitiveWords(stack, func))
-                                {
-                                    return true;
-                                }
+                                return true;
                             }
                         }
                     }
-                    else if (value is IList list)
+                }
+                else if (value is IList list)
+                {
+                    for (int i = 0; i < list.Count; i++)
                     {
-                        for (int i = 0; i < list.Count; i++)
+                        if (null != list[i])
                         {
-                            if (null != list[i])
+                            if (list[i].ContainsSensitiveWords(stack, func))
                             {
-                                if (list[i].ContainsSensitiveWords(stack, func))
-                                {
-                                    return true;
-                                }
+                                return true;
                             }
                         }
                     }

@@ -5,6 +5,7 @@ using SensitiveWordsTests;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -23,8 +24,8 @@ namespace SensitiveWords.Tests
 
             SensitiveWordsResolver.Config(options =>
             {
-                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true).Add("啊啊|zf|666"));
-                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "?", true).Add("操|文|NM"));
+                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true).Add("啊啊|zf|666").Build());
+                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "?", true).Add("操|文|NM").Build());
             });
 
             Assert.Equal("**这是什么?作**……*** ??", "zf这是什么操作啊啊……666 nm".Desensitize());
@@ -34,6 +35,7 @@ namespace SensitiveWords.Tests
                 options.Add(new SensitiveWordsOptions(HandleOptions.Default | HandleOptions.Output, ReplaceOptions.Character, "*", true, groupReplaceOptions: GroupReplaceOptions.GroupPriority)
                     .Add(@"\w{4}(\w+(?:[-+.]\w+)*)@\w+(?:[-.]\w+)*\.\w+(?:[-.]\w+)*")
                     .Add(@"(?:13[0-9]|14[0-14-9]|15[0-35-9]|16[25-7]|17[0-8]|18[0-9]|19[0-35-9])(\d{4})\d{4}")
+                    .Build()
                 );
             });
 
@@ -44,8 +46,8 @@ namespace SensitiveWords.Tests
 
             SensitiveWordsResolver.Config(options =>
             {
-                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true).AddFile("Words-Polit.txt"));
-                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true).AddFile("Words-Price.txt"));
+                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true).AddFile("Words-Polit.txt").Build());
+                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true).AddFile("Words-Price.txt").Build());
             });
 
             Assert.Equal("富强**和谐", "富强民主和谐".Desensitize());
@@ -55,6 +57,7 @@ namespace SensitiveWords.Tests
                 options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true, groupReplaceOptions: GroupReplaceOptions.GroupPriority)
                     .Add(@"政治(?!老师|家)|\d{3}-\d{2}(\d{4})\d{2}|\d{4}-\d{2}(\d{3})\d{2}")
                     .SetTag("SWTest")
+                    .Build()
                 )
             );
 
@@ -96,21 +99,21 @@ namespace SensitiveWords.Tests
 
             SensitiveWordsResolver.Config(options =>
             {
-                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.PinYin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("尘埃|酒"));
-                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.JianPin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("菩提|本来"));
-                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Homophone, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("终身"));
+                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.PinYin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("尘埃|酒").Build());
+                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.JianPin, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("菩提|本来").Build());
+                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Homophone, null, true, groupReplaceOptions: GroupReplaceOptions.GroupPriority).Add("终身").Build());
             });
 
             Assert.Equal("pt本无树，明镜亦非台。bl无一物，何处惹chenai！知足常乐，中伸不辱，今朝有jiu今朝醉，明日愁来明日愁。", "菩提本无树，明镜亦非台。本来无一物，何处惹尘埃！知足常乐，终身不辱，今朝有酒今朝醉，明日愁来明日愁。".Desensitize());
 
             SensitiveWordsResolver.Options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true, false, GroupReplaceOptions.GroupPriority, false)
-                .Add("你是不是傻啊|你是不是傻")
+                .Add("你是不是傻啊|你是不是傻").Build()
             );
 
             Assert.Equal("*****啊", "你是不是傻啊".Desensitize());
 
             SensitiveWordsResolver.Options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true, false, GroupReplaceOptions.GroupPriority)
-                .Add("你是不是笨啊|你是不是笨")
+                .Add("你是不是笨啊|你是不是笨").Build()
             );
 
             Assert.Equal("******", "你是不是笨啊".Desensitize());
@@ -127,10 +130,11 @@ namespace SensitiveWords.Tests
                         services.AddSensitiveWords(sensitiveWordsOptions =>
                         {
                             sensitiveWordsOptions.Add(new SensitiveWordsOptions(HandleOptions.Input, ReplaceOptions.Character, "*", true, false, GroupReplaceOptions.GroupPriority)
-                                .Add("牛皮|反对"));
+                                .Add("牛皮|反对").Build());
                             sensitiveWordsOptions.Add(new SensitiveWordsOptions(HandleOptions.Output, ReplaceOptions.Character, "*", true, false, GroupReplaceOptions.GroupPriority)
                                 .Add(@"\w{4}(\w+(?:[-+.]\w+)*)@\w+(?:[-.]\w+)*\.\w+(?:[-.]\w+)*")
                                 .Add(@"(?:13[0-9]|14[0-14-9]|15[0-35-9]|16[25-7]|17[0-8]|18[0-9]|19[0-35-9])(\d{4})\d{4}")
+                                .Build()
                             );
                         });
                     });
@@ -155,7 +159,9 @@ namespace SensitiveWords.Tests
                 SensitiveWordsResolver.Options.Clear();
 
                 options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true, isMaxMatch: isMaxMatch, whiteSpaceOptions: isMaxMatch ? WhiteSpaceOptions.IgnoreWhiteSpace | WhiteSpaceOptions.IgnoreNewLine : WhiteSpaceOptions.Default)
-                    .AddFile(  "Words.txt"));
+                    .AddFile("Words.txt")
+                    .Build()
+                );
             });
 
             var array = new[] { "ABD", "abde", "ABCGH", "A", "AB", "ABC", "BCD", "E", "EF", "AD", "ADF", "AE", "JLB", "JBLL", "JLFD", "JLFDE", "JLFB", "JLFBA", "JLFBD", "CO" };

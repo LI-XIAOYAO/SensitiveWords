@@ -212,6 +212,17 @@ namespace SensitiveWords
         }
 
         /// <summary>
+        /// 构建敏感词选项（添加删除非正则敏感词后调用生效）
+        /// </summary>
+        /// <returns></returns>
+        public SensitiveWordsOptions Build()
+        {
+            WordsNodes = WordsNodes.Build(SimpleSensitiveWords, IgnoreCase);
+
+            return this;
+        }
+
+        /// <summary>
         /// 获取敏感词
         /// </summary>
         /// <returns></returns>
@@ -233,7 +244,10 @@ namespace SensitiveWords
         {
             if (!string.IsNullOrEmpty(value))
             {
-                value = WordsNodes?.Replace(RemoveWhiteSpace(value), MatchEvaluator, IsMaxMatch);
+                if (null != WordsNodes)
+                {
+                    value = WordsNodes.Replace(RemoveWhiteSpace(value), MatchEvaluator, IsMaxMatch);
+                }
 
                 foreach (var word in RegexSensitiveWords)
                 {
@@ -253,7 +267,7 @@ namespace SensitiveWords
         {
             if (!string.IsNullOrEmpty(value))
             {
-                if (WordsNodes?.Matches(RemoveWhiteSpace(value), IsMaxMatch).Any() ?? false)
+                if (null != WordsNodes && WordsNodes.Matches(RemoveWhiteSpace(value), IsMaxMatch).Any())
                 {
                     return true;
                 }
@@ -374,7 +388,7 @@ namespace SensitiveWords
         /// <param name="words"></param>
         /// <param name="action"></param>
         /// <returns></returns>
-        private void ClassificationWords(string words, Action<string> action)
+        private static void ClassificationWords(string words, Action<string> action)
         {
             if (null == words || null == action)
             {
@@ -427,8 +441,6 @@ namespace SensitiveWords
                     }
                 }
             }
-
-            WordsNodes = WordsNodes.Build(SimpleSensitiveWords, IgnoreCase);
         }
 
         /// <summary>

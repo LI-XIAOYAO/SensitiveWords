@@ -122,6 +122,6 @@ using SensitiveWords;
 	- `AddFile` 添加文件敏感词，文本内容规则一致
 	- `SetTag` 设置标签
 	- `Remove` 删除敏感词
-	- `Build` 构建敏感词选项（添加非正则敏感词后调用生效）
+	- `Build` 构建敏感词选项（添加删除非正则敏感词后调用生效）
 
 多音字词组添加：`SensitiveWordsResolver.RegisterHomophoneRegexWordGroup(...)` 存在多音字时无法区分，可通过添加词组确定

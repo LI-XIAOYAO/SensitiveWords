@@ -246,7 +246,7 @@ namespace SensitiveWords
             {
                 if (null != WordsNodes)
                 {
-                    value = WordsNodes.Replace(RemoveWhiteSpace(value), MatchEvaluator, IsMaxMatch);
+                    value = WordsNodes.Replace(value, MatchEvaluator, IsMaxMatch, WhiteSpaceOptions);
                 }
 
                 foreach (var word in RegexSensitiveWords)
@@ -267,7 +267,7 @@ namespace SensitiveWords
         {
             if (!string.IsNullOrEmpty(value))
             {
-                if (null != WordsNodes && WordsNodes.Matches(RemoveWhiteSpace(value), IsMaxMatch).Any())
+                if (null != WordsNodes && WordsNodes.Matches(value, IsMaxMatch, WhiteSpaceOptions).Any())
                 {
                     return true;
                 }
@@ -471,26 +471,6 @@ namespace SensitiveWords
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// 移除空白字符
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        private string RemoveWhiteSpace(string value)
-        {
-            if ((WhiteSpaceOptions & WhiteSpaceOptions.IgnoreWhiteSpace) > 0)
-            {
-                value = value.Replace(" ", null);
-            }
-
-            if ((WhiteSpaceOptions & WhiteSpaceOptions.IgnoreNewLine) > 0)
-            {
-                value = value.Replace("\r", null).Replace("\n", null);
-            }
-
-            return value;
         }
     }
 }

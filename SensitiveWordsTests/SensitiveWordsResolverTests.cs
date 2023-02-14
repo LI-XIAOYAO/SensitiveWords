@@ -2,10 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using SensitiveWordsTests;
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -195,7 +192,7 @@ namespace SensitiveWords.Tests
 
             if (isMaxMatch)
             {
-                Assert.Equal("他家老大对**说****KJHGO", replace);
+                Assert.Equal("他家老大对****说******KJHGO", replace);
             }
             else
             {

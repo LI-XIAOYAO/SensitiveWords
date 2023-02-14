@@ -5,7 +5,7 @@ using System.Linq;
 namespace SensitiveWords
 {
     /// <summary>
-    /// 单词节点集
+    /// 字符节点集
     /// </summary>
     public class WordsNodes : InternalReadOnlyCollection<WordsNode>
     {
@@ -68,12 +68,13 @@ namespace SensitiveWords
         /// </summary>
         /// <param name="text"></param>
         /// <param name="isMaxMatch"></param>
+        /// <param name="whiteSpaceOptions"></param>
         /// <returns></returns>
-        public NodeCaptures Matches(string text, bool isMaxMatch = true)
+        public NodeCaptures Matches(string text, bool isMaxMatch = true, WhiteSpaceOptions whiteSpaceOptions = WhiteSpaceOptions.Default)
         {
             var nodeCaptures = new NodeCaptures(text, this);
 
-            if (string.IsNullOrEmpty(text))
+            if (string.IsNullOrEmpty(text) || 0 == Count)
             {
                 return nodeCaptures;
             }
@@ -87,6 +88,11 @@ namespace SensitiveWords
             {
                 if (i < text.Length)
                 {
+                    if (i > position)
+                    {
+                        MoveIndex(text, ref i, whiteSpaceOptions);
+                    }
+
                     var node = wordsNodes.Find(text[i]);
                     if (null != node)
                     {
@@ -98,7 +104,10 @@ namespace SensitiveWords
                         else
                         {
                             var p = position;
-                            position = Match(node.Nodes, ++i, position);
+                            if (node.HasNodes())
+                            {
+                                position = Match(node.Nodes, ++i, position);
+                            }
 
                             if (node.IsEnd && p == position)
                             {
@@ -121,8 +130,9 @@ namespace SensitiveWords
         /// <param name="text"></param>
         /// <param name="replacement"></param>
         /// <param name="isMaxMatch"></param>
+        /// <param name="whiteSpaceOptions"></param>
         /// <returns></returns>
-        public string Replace(string text, string replacement, bool isMaxMatch = true) => Replace(text, c => replacement, isMaxMatch);
+        public string Replace(string text, string replacement, bool isMaxMatch = true, WhiteSpaceOptions whiteSpaceOptions = WhiteSpaceOptions.Default) => Replace(text, c => replacement, isMaxMatch, whiteSpaceOptions);
 
         /// <summary>
         /// 替换
@@ -130,15 +140,16 @@ namespace SensitiveWords
         /// <param name="text"></param>
         /// <param name="matchEvaluator"></param>
         /// <param name="isMaxMatch"></param>
+        /// <param name="whiteSpaceOptions"></param>
         /// <returns></returns>
-        public string Replace(string text, Func<NodeCapture, string> matchEvaluator, bool isMaxMatch = true)
+        public string Replace(string text, Func<NodeCapture, string> matchEvaluator, bool isMaxMatch = true, WhiteSpaceOptions whiteSpaceOptions = WhiteSpaceOptions.Default)
         {
             if (null == matchEvaluator)
             {
                 return text;
             }
 
-            var nodeCaptures = Matches(text, isMaxMatch);
+            var nodeCaptures = Matches(text, isMaxMatch, whiteSpaceOptions);
             if (0 == nodeCaptures.Count)
             {
                 return text;
@@ -174,6 +185,21 @@ namespace SensitiveWords
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// 获取忽略空白后的索引
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="index"></param>
+        /// <param name="whiteSpaceOptions"></param>
+        private static void MoveIndex(string text, ref int index, WhiteSpaceOptions whiteSpaceOptions)
+        {
+            while ((((whiteSpaceOptions & WhiteSpaceOptions.IgnoreWhiteSpace) > 0 && text[index] is ' ') || ((whiteSpaceOptions & WhiteSpaceOptions.IgnoreNewLine) > 0 && (text[index] is '\r' || text[index] is '\n')))
+                && index < text.Length - 1)
+            {
+                index++;
+            }
         }
     }
 }

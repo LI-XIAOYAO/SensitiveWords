@@ -52,9 +52,8 @@ namespace SensitiveWords
         /// 替换
         /// </summary>
         /// <param name="matchEvaluator"></param>
-        /// <param name="isMaxMatch"></param>
         /// <returns></returns>
-        public string Replace(Func<NodeCapture, string> matchEvaluator, bool isMaxMatch = true)
+        public string Replace(Func<NodeCapture, string> matchEvaluator)
         {
             if (null == matchEvaluator || 0 == Items.Count)
             {
@@ -66,10 +65,12 @@ namespace SensitiveWords
             foreach (var nodeCapture in Items)
             {
                 var replacement = matchEvaluator(nodeCapture) ?? string.Empty;
+                if (replacement != nodeCapture.Value)
+                {
+                    text = text.Replace(nodeCapture.Index + offset, nodeCapture.Length, replacement);
 
-                text = text.Replace(nodeCapture.Index + offset, nodeCapture.Length, replacement);
-
-                offset += replacement.Length - nodeCapture.Value.Length;
+                    offset += replacement.Length - nodeCapture.Length;
+                }
             }
 
             return text;
@@ -81,7 +82,7 @@ namespace SensitiveWords
         /// <param name="replacement"></param>
         /// <param name="isMaxMatch"></param>
         /// <returns></returns>
-        public string Replace(string replacement, bool isMaxMatch = true) => Replace(c => replacement, isMaxMatch);
+        public string Replace(string replacement) => Replace(c => replacement);
 
         /// <summary>
         /// <inheritdoc/>

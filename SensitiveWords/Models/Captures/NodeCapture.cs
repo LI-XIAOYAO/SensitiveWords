@@ -5,6 +5,8 @@
     /// </summary>
     public class NodeCapture
     {
+        private NodeCaptures _captures;
+
         internal NodeCapture(int index, int length)
         {
             Index = index;
@@ -24,12 +26,19 @@
         /// <summary>
         /// 捕获值
         /// </summary>
-        public string Value => Captures?.Value?.Substring(Index, Length);
+        public string Value { get; internal set; }
 
         /// <summary>
         /// 节点捕获集
         /// </summary>
-        public NodeCaptures Captures { get; internal set; }
+        public NodeCaptures Captures
+        {
+            get => _captures;
+            internal set
+            {
+                Value = (_captures = value).Value?.Substring(Index, Length);
+            }
+        }
 
         /// <summary>
         /// <inheritdoc/>

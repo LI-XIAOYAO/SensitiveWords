@@ -88,12 +88,13 @@ namespace SensitiveWords
             {
                 if (i < text.Length)
                 {
-                    if (i > position)
+                    var node = wordsNodes.Find(text[i]);
+                    if (null == node && i > position)
                     {
                         MoveIndex(text, ref i, whiteSpaceOptions);
+                        node = wordsNodes.Find(text[i]);
                     }
 
-                    var node = wordsNodes.Find(text[i]);
                     if (null != node)
                     {
                         if (node.IsEnd && !(isMaxMatch && node.HasNodes()))
@@ -155,7 +156,7 @@ namespace SensitiveWords
                 return text;
             }
 
-            return nodeCaptures.Replace(matchEvaluator, isMaxMatch);
+            return nodeCaptures.Replace(matchEvaluator);
         }
 
         /// <summary>

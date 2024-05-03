@@ -1,4 +1,6 @@
-﻿namespace SensitiveWords
+﻿using System;
+
+namespace SensitiveWords
 {
     /// <summary>
     /// 节点捕获
@@ -36,7 +38,7 @@
             get => _captures;
             internal set
             {
-                Value = (_captures = value).Value?.Substring(Index, Length);
+                Value = (_captures = value).Value.AsSpan(Index, Length).ToString();
             }
         }
 

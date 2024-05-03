@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -12,7 +13,7 @@ namespace SensitiveWords
         /// <summary>
         /// FullPaths
         /// </summary>
-        private static readonly ISet<string> _fullPaths = new HashSet<string>();
+        private static readonly HashSet<string> _fullPaths = new HashSet<string>();
 
         /// <summary>
         /// HomophoneRegexMaps
@@ -20,9 +21,9 @@ namespace SensitiveWords
         internal static Dictionary<string, string> HomophoneRegexMaps { get; } = new Dictionary<string, string>();
 
         /// <summary>
-        /// Instance
+        /// 多音字词组
         /// </summary>
-        public static HomophoneRegexGroupOptions Instance => new HomophoneRegexGroupOptions();
+        public static HomophoneRegexGroupOptions Options => new HomophoneRegexGroupOptions();
 
         /// <summary>
         /// 添加单个多音字词组
@@ -30,19 +31,22 @@ namespace SensitiveWords
         /// <param name="key">拼音</param>
         /// <param name="value">词组，多个英文竖线分隔</param>
         /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
         public HomophoneRegexGroupOptions Add(string key, string value)
         {
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                throw new ArgumentException(nameof(key));
+            }
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentException(nameof(value));
+            }
+
             new Regex(value);
 
-            key = key.ToUpper();
-            if (HomophoneRegexMaps.ContainsKey(key))
-            {
-                HomophoneRegexMaps[key] = value;
-            }
-            else
-            {
-                HomophoneRegexMaps.Add(key, value);
-            }
+            HomophoneRegexMaps[key.ToUpper()] = value;
 
             return this;
         }
@@ -63,10 +67,10 @@ namespace SensitiveWords
         }
 
         /// <summary>
-        /// 添加多音字文件词组，拼音与词组空格隔开一个一行
-        /// <list type="table">eg:</list>
-        /// <list type="table">hang 一行|行业|排行</list>
-        /// <list type="table">xing 前行|运行|行书</list>
+        /// 添加多音字文件词组，拼音与词组空格隔开一个一行<br /><br />
+        /// eg:<br />
+        /// hang 一行|行业|排行<br />
+        /// xing 前行|运行|行书<br />
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
@@ -90,11 +94,13 @@ namespace SensitiveWords
             var text = File.ReadAllLines(path);
             foreach (var line in text)
             {
-                var value = line.Split(' ');
-                if (2 == value.Length)
+                var value = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (2 != value.Length)
                 {
-                    Add(value[0].Trim(), value[1].Trim());
+                    throw new ArgumentException(line);
                 }
+
+                Add(value[0].Trim(), value[1].Trim());
             }
 
             return this;

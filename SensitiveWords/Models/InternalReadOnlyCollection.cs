@@ -8,14 +8,25 @@ namespace SensitiveWords
     /// 只读集合
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class InternalReadOnlyCollection<T> : IReadOnlyCollection<T>
+    public class InternalReadOnlyCollection<T> : IReadOnlyCollection<T>, IReadOnlyList<T>
     {
         private readonly IList<T> _list = new List<T>();
 
         /// <summary>
-        /// 元素集合
+        /// <inheritdoc/>
         /// </summary>
-        protected IList<T> Items => _list;
+        protected internal InternalReadOnlyCollection()
+        {
+        }
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <param name="list"></param>
+        protected internal InternalReadOnlyCollection(IList<T> list)
+        {
+            _list = list;
+        }
 
         /// <summary>
         /// 根据索引获取值
@@ -30,12 +41,12 @@ namespace SensitiveWords
         public int Count => _list.Count;
 
         /// <summary>
-        /// 返回遍历集合的枚举数
+        /// <inheritdoc/>
         /// </summary>
         /// <returns></returns>
         public IEnumerator<T> GetEnumerator() => _list.GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)_list).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         /// <summary>
         /// 添加元素

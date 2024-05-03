@@ -2,7 +2,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using SensitiveWordsTests;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -72,7 +75,7 @@ namespace SensitiveWords.Tests
                 {
                     P1 = "33333@163.com"
                 },
-                P7 = new System.Collections.Generic.List<Test.Test3>
+                P7 = new List<Test.Test3>
                 {
                     new Test.Test3{
                         P1 = "17611116666",
@@ -85,13 +88,22 @@ namespace SensitiveWords.Tests
                         P3 = "一个政治老师在谈政治"
                     },
                 },
-                P8 = new System.Collections.Generic.Dictionary<string, string> {
+                P8 = new Dictionary<string, string> {
                     { "1", "独立自主" }
+                },
+                P9 = new Test.TestStruct
+                {
+                    P2 = "特价商品",
+                    P3 = new Test.Test1
+                    {
+                        P1 = "特价商品",
+                        P2 = "特价商品",
+                    }
                 }
             };
             test.P6.Test = test;
 
-            var testJson = "{\"P1\":\"**商品\",\"P2\":0,\"P3\":\"呜呜呜~\",\"P4\":\"忽略的特价商品\",\"P5\":{\"P1\":\"**\",\"P2\":\"***...\"},\"P6\":{\"P1\":\"3333*@163.com\"},\"P7\":[{\"P1\":\"1761111***6\",\"P2\":\"189****1635\",\"P3\":\"010-33****66\"},{\"P1\":\"真**\",\"P2\":\"如果**不是为了杀戮\",\"P3\":\"一个政治老师在谈**\"}],\"P8\":{\"1\":\"**自主\"}}";
+            var testJson = "{\"P1\":\"**商品\",\"P2\":0,\"P3\":\"呜呜呜~\",\"P4\":\"忽略的特价商品\",\"P5\":{\"P1\":\"**\",\"P2\":\"***...\"},\"P6\":{\"P1\":\"3333*@163.com\"},\"P7\":[{\"P1\":\"1761111***6\",\"P2\":\"189****1635\",\"P3\":\"010-33****66\"},{\"P1\":\"真**\",\"P2\":\"如果**不是为了杀戮\",\"P3\":\"一个政治老师在谈**\"}],\"P8\":{\"1\":\"**自主\"},\"P9\":{\"P1\":0,\"P2\":\"特价商品\",\"P3\":{\"P1\":\"**商品\",\"P2\":\"**商品\"}}}";
             Assert.Equal(testJson, JsonConvert.SerializeObject(test.DesensitizeAll(), new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore }));
 
             SensitiveWordsResolver.Config(options =>
@@ -165,6 +177,9 @@ namespace SensitiveWords.Tests
 
             var wordsNodes = WordsNodes.Build(array);
             var words = wordsNodes.GetWords();
+
+            Assert.Equal(array.OrderBy(c => c), words.OrderBy(c => c), StringComparer.OrdinalIgnoreCase);
+
             foreach (var item in words)
             {
                 Debug.Write($"{item} ");
@@ -188,7 +203,7 @@ namespace SensitiveWords.Tests
             Debug.WriteLine(replace);
 
             text = "他家老大对老  二说狗屁\r\n专家KJHGO";
-            replace = text.Desensitize();
+            replace = text.Desensitize(HandleOptions.Default, null, null);
 
             if (isMaxMatch)
             {
@@ -202,6 +217,88 @@ namespace SensitiveWords.Tests
             Debug.WriteLine(string.Empty);
             Debug.WriteLine(text);
             Debug.WriteLine(replace);
+        }
+
+        [Fact()]
+        public void IgnoreSpaceTest()
+        {
+            SensitiveWordsResolver.Config(options =>
+            {
+                SensitiveWordsResolver.Options.Clear();
+
+                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true, whiteSpaceOptions: WhiteSpaceOptions.IgnoreWhiteSpace | WhiteSpaceOptions.IgnoreNewLine)
+                    .Add("ABC|D EF|你好|世 界")
+                    .Build()
+                );
+            });
+
+            var matchs = "你和东欧内飞地阿飞ABCfdijifoofa飞机送哦哦看".MatcheSensitiveWords();
+
+            Assert.False("ABDC".ContainsSensitiveWords());
+            Assert.Equal("***", "ABC".Desensitize());
+            Assert.True("ABC".ContainsSensitiveWords());
+            Assert.Equal("****", "D EF".Desensitize());
+            Assert.True("D EF".ContainsSensitiveWords());
+            Assert.Equal("**", "你好".Desensitize());
+            Assert.True("你好".ContainsSensitiveWords());
+            Assert.Equal("***", "世 界".Desensitize());
+            Assert.True("世 界".ContainsSensitiveWords());
+        }
+
+        [Fact()]
+        public void RandomTest()
+        {
+            SensitiveWordsResolver.Config(options =>
+            {
+                SensitiveWordsResolver.Options.Clear();
+
+                options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true, isMaxMatch: true, whiteSpaceOptions: WhiteSpaceOptions.IgnoreWhiteSpace | WhiteSpaceOptions.IgnoreNewLine)
+                    .AddFile("Words.txt")
+                    .Build()
+                );
+            });
+
+            var randomTexts = GenerateRandomChinese(200_000);
+
+            if (randomTexts.ContainsSensitiveWords())
+            {
+                var matchResults = randomTexts.MatcheSensitiveWords();
+                Assert.True(matchResults.IsMatch);
+
+                var deRandomTexts = randomTexts.Desensitize();
+
+                Assert.NotEqual(randomTexts, deRandomTexts);
+            }
+
+            var test = new Test
+            {
+                P1 = GenerateRandomChinese(200_000),
+                P3 = GenerateRandomChinese(200_000),
+                P4 = GenerateRandomChinese(200_000),
+                P9 = new Test.TestStruct
+                {
+                    P3 = new Test.Test1
+                    {
+                        P1 = GenerateRandomChinese(200_000)
+                    }
+                }
+            };
+            if (test.ContainsSensitiveWords())
+            {
+                var testMatchResults = test.MatcheSensitiveWords();
+                Assert.True(testMatchResults.IsMatch);
+
+                var result = test.Desensitize();
+            }
+        }
+
+        private static string GenerateRandomChinese(int length)
+        {
+            var texts = new char[length];
+
+            Parallel.For(0, length, i => texts[i] = (char)Random.Shared.Next(0x4e00, 0x9fa5 + 1));
+
+            return texts.AsSpan().ToString();
         }
     }
 }

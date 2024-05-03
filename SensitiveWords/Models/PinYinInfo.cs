@@ -25,6 +25,12 @@ namespace SensitiveWords
         /// <summary>
         /// 同音字
         /// </summary>
-        public List<char> Homophone { get; set; }
+        public IReadOnlyList<char> Homophone { get; set; }
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString() => $"{Char} {PinYin}";
     }
 }

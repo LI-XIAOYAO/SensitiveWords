@@ -1,4 +1,5 @@
 ﻿using Microsoft.International.Converters.PinYinConverter;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -41,7 +42,7 @@ namespace SensitiveWords
                 return pinYinInfos;
             }
 
-            var chars = str.ToCharArray();
+            var chars = str.AsSpan();
             for (int i = 0; i < chars.Length; i++)
             {
                 var pinYinInfo = new PinYinInfo
@@ -58,63 +59,36 @@ namespace SensitiveWords
                         hastSet.Add(Regex.Replace(chineseChar.Pinyins[j], @"\d", string.Empty));
                     }
 
+                    void SetHomophone(string pinYin)
+                    {
+                        pinYinInfo.PinYin = pinYin.ToLower();
+
+                        for (int h = 1; h <= chineseChar.Pinyins.Count && null == pinYinInfo.Homophone; h++)
+                        {
+                            pinYinInfo.Homophone = ChineseChar.GetChars($"{pinYinInfo.PinYin}{h}")?.Where(c => c != pinYinInfo.Char).ToList();
+                        }
+                    }
+
                     if (chineseChar.IsPolyphone && hastSet.Count > 1 && HomophoneRegexGroupOptions.HomophoneRegexMaps.Count > 0)
                     {
-                        int j = 0;
                         foreach (var item in hastSet)
                         {
-                            if (HomophoneRegexGroupOptions.HomophoneRegexMaps.ContainsKey(item))
+                            if (HomophoneRegexGroupOptions.HomophoneRegexMaps.TryGetValue(item, out var homophoneRegex)
+                                && ((i > 0 && ChineseChar.IsValidChar(chars[i - 1]) && Regex.IsMatch(chars.Slice(i - 1, 2).ToString(), homophoneRegex))
+                                    || i + 1 < chars.Length && ChineseChar.IsValidChar(chars[i + 1]) && Regex.IsMatch(chars.Slice(i, 2).ToString(), homophoneRegex))
+                            )
                             {
-                                if (i > 0 && ChineseChar.IsValidChar(chars[i - 1]) && Regex.IsMatch(string.Concat(chars[i - 1], chars[i]), HomophoneRegexGroupOptions.HomophoneRegexMaps[item]))
-                                {
-                                    pinYinInfo.PinYin = item.ToLower();
-                                    for (int h = 1; h <= chineseChar.PinyinCount && null == pinYinInfo.Homophone; h++)
-                                    {
-                                        pinYinInfo.Homophone = ChineseChar.GetChars($"{item}{h}")?.ToList();
-                                    }
+                                SetHomophone(item);
 
-                                    break;
-                                }
-
-                                if (i + 1 < chars.Length && ChineseChar.IsValidChar(chars[i + 1]) && Regex.IsMatch(string.Concat(chars[i], chars[i + 1]), HomophoneRegexGroupOptions.HomophoneRegexMaps[item]))
-                                {
-                                    pinYinInfo.PinYin = item.ToLower();
-                                    for (int h = 1; h <= chineseChar.PinyinCount && null == pinYinInfo.Homophone; h++)
-                                    {
-                                        pinYinInfo.Homophone = ChineseChar.GetChars($"{item}{h}")?.ToList();
-                                    }
-
-                                    break;
-                                }
-                            }
-
-                            if (++j == hastSet.Count)
-                            {
-                                pinYinInfo.PinYin = hastSet.First().ToLower();
-                                for (int h = 1; h <= chineseChar.PinyinCount && null == pinYinInfo.Homophone; h++)
-                                {
-                                    pinYinInfo.Homophone = ChineseChar.GetChars($"{hastSet.First()}{h}")?.ToList();
-                                }
+                                break;
                             }
                         }
                     }
-                    else
+
+                    if (null == pinYinInfo.PinYin)
                     {
-                        pinYinInfo.PinYin = hastSet.First().ToLower();
-                        pinYinInfo.Homophone = ChineseChar.GetChars(chineseChar.Pinyins[0])?.ToList();
-                        if (null == pinYinInfo.Homophone)
-                        {
-                            for (int h = 1; h <= chineseChar.PinyinCount && null == pinYinInfo.Homophone; h++)
-                            {
-                                pinYinInfo.Homophone = ChineseChar.GetChars($"{hastSet.First()}{h}")?.ToList();
-                            }
-                        }
+                        SetHomophone(hastSet.First());
                     }
-                }
-
-                if (null != pinYinInfo.Homophone)
-                {
-                    pinYinInfo.Homophone = pinYinInfo.Homophone.Where(c => c != pinYinInfo.Char).ToList();
                 }
 
                 pinYinInfos.Add(pinYinInfo);

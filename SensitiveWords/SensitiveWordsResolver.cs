@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SensitiveWords
 {
@@ -30,45 +33,8 @@ namespace SensitiveWords
         /// <param name="groupOptions"></param>
         public static void RegisterHomophoneRegexWordGroup(Action<HomophoneRegexGroupOptions> groupOptions)
         {
-            groupOptions?.Invoke(HomophoneRegexGroupOptions.Instance);
+            groupOptions?.Invoke(HomophoneRegexGroupOptions.Options);
         }
-
-        /// <summary>
-        /// 默认脱敏
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public static string Desensitize(this string value) => value.Desensitize(HandleOptions.Default);
-
-        /// <summary>
-        /// 输入脱敏
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public static string DesensitizeInput(this string value) => value.Desensitize(HandleOptions.Input);
-
-        /// <summary>
-        /// 输出脱敏
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public static string DesensitizeOutput(this string value) => value.Desensitize(HandleOptions.Output);
-
-        /// <summary>
-        /// 脱敏所有
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public static string DesensitizeAll(this string value) => value.Desensitize(HandleOptions.Default | HandleOptions.Input | HandleOptions.Output);
-
-        /// <summary>
-        /// 指定类型脱敏
-        /// </summary>
-        /// <param name="value"></param>
-        /// <param name="handleOptions"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static string Desensitize(this string value, HandleOptions handleOptions) => value.Desensitize(handleOptions, null);
 
         /// <summary>
         /// 指定类型标签脱敏
@@ -76,25 +42,23 @@ namespace SensitiveWords
         /// <param name="value"></param>
         /// <param name="handleOptions"></param>
         /// <param name="tag"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static string Desensitize(this string value, HandleOptions handleOptions, string tag)
+        /// <exception cref="OperationCanceledException"></exception>
+        private static object Desensitize(this string value, HandleOptions handleOptions, string tag, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrEmpty(value) || !Options.Any())
+            if (string.IsNullOrEmpty(value))
             {
                 return value;
             }
 
-            if (handleOptions < HandleOptions.Default || handleOptions > (HandleOptions.Default | HandleOptions.Input | HandleOptions.Output))
-            {
-                throw new ArgumentOutOfRangeException(nameof(handleOptions));
-            }
-
             foreach (var sensitiveWordsOptions in Options)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if ((handleOptions & sensitiveWordsOptions.HandleOptions) > 0 && (null == tag || sensitiveWordsOptions.Tag == tag))
                 {
-                    value = sensitiveWordsOptions.Replace(value);
+                    value = sensitiveWordsOptions.Replace(value, cancellationToken);
                 }
             }
 
@@ -106,20 +70,17 @@ namespace SensitiveWords
         /// </summary>
         /// <param name="value"></param>
         /// <param name="sensitiveWordsOptions"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static string Desensitize(this string value, SensitiveWordsOptions sensitiveWordsOptions)
+        /// <exception cref="OperationCanceledException"></exception>
+        private static object Desensitize(this string value, SensitiveWordsOptions sensitiveWordsOptions, CancellationToken cancellationToken = default)
         {
-            if (null == sensitiveWordsOptions)
-            {
-                throw new ArgumentNullException(nameof(sensitiveWordsOptions));
-            }
-
             if (string.IsNullOrEmpty(value))
             {
                 return value;
             }
 
-            return sensitiveWordsOptions.Replace(value);
+            return sensitiveWordsOptions.Replace(value, cancellationToken);
         }
 
         /// <summary>
@@ -127,36 +88,84 @@ namespace SensitiveWords
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="value"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static T Desensitize<T>(this T value)
-            where T : class => value.Desensitize(HandleOptions.Default);
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T Desensitize<T>(this T value, CancellationToken cancellationToken = default) => value.Desensitize(options: null, cancellationToken);
+
+        /// <summary>
+        /// 默认脱敏
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T Desensitize<T>(this T value, DesensitizeOptions options, CancellationToken cancellationToken = default) => value.Desensitize(HandleOptions.Default, options, cancellationToken);
 
         /// <summary>
         /// 输入脱敏
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="value"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static T DesensitizeInput<T>(this T value)
-            where T : class => value.Desensitize(HandleOptions.Input);
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T DesensitizeInput<T>(this T value, CancellationToken cancellationToken = default) => value.DesensitizeInput(options: null, cancellationToken);
+
+        /// <summary>
+        /// 输入脱敏
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T DesensitizeInput<T>(this T value, DesensitizeOptions options, CancellationToken cancellationToken = default) => value.Desensitize(HandleOptions.Input, options, cancellationToken);
 
         /// <summary>
         /// 输出脱敏
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="value"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static T DesensitizeOutput<T>(this T value)
-            where T : class => value.Desensitize(HandleOptions.Output);
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T DesensitizeOutput<T>(this T value, CancellationToken cancellationToken = default) => value.DesensitizeOutput(null, cancellationToken);
+
+        /// <summary>
+        /// 输出脱敏
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T DesensitizeOutput<T>(this T value, DesensitizeOptions options, CancellationToken cancellationToken = default) => value.Desensitize(HandleOptions.Output, options, cancellationToken);
 
         /// <summary>
         /// 脱敏所有
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="value"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static T DesensitizeAll<T>(this T value)
-            where T : class => value.Desensitize(HandleOptions.Default | HandleOptions.Input | HandleOptions.Output);
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T DesensitizeAll<T>(this T value, CancellationToken cancellationToken = default) => value.DesensitizeAll(null, cancellationToken);
+
+        /// <summary>
+        /// 脱敏所有
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T DesensitizeAll<T>(this T value, DesensitizeOptions options, CancellationToken cancellationToken = default) => value.Desensitize(HandleOptions.Default | HandleOptions.Input | HandleOptions.Output, options, cancellationToken);
 
         /// <summary>
         /// 指定类型脱敏
@@ -164,21 +173,70 @@ namespace SensitiveWords
         /// <typeparam name="T"></typeparam>
         /// <param name="value"></param>
         /// <param name="handleOptions"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static T Desensitize<T>(this T value, HandleOptions handleOptions)
-            where T : class
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T Desensitize<T>(this T value, HandleOptions handleOptions, CancellationToken cancellationToken = default) => value.Desensitize(handleOptions, options: null, cancellationToken);
+
+        /// <summary>
+        /// 指定类型脱敏
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="handleOptions"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T Desensitize<T>(this T value, HandleOptions handleOptions, DesensitizeOptions options, CancellationToken cancellationToken = default) => value.Desensitize(handleOptions, null, options, cancellationToken);
+
+        /// <summary>
+        /// 指定类型标签脱敏
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="handleOptions"></param>
+        /// <param name="tag"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T Desensitize<T>(this T value, HandleOptions handleOptions, string tag, CancellationToken cancellationToken = default) => value.Desensitize(handleOptions, tag, null, cancellationToken);
+
+        /// <summary>
+        /// 指定类型标签脱敏
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="handleOptions"></param>
+        /// <param name="tag"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T Desensitize<T>(this T value, HandleOptions handleOptions, string tag, DesensitizeOptions options, CancellationToken cancellationToken = default)
         {
-            if (null == value || !Options.Any())
+            if (null == value || 0 == Options.Count)
             {
                 return value;
             }
 
-            if (handleOptions < HandleOptions.Default || handleOptions > (HandleOptions.Default | HandleOptions.Input | HandleOptions.Output))
+            handleOptions.Valid();
+
+            if (value is string str)
             {
-                throw new ArgumentOutOfRangeException(nameof(handleOptions));
+                return (T)str.Desensitize(handleOptions, tag, cancellationToken);
             }
 
-            return value.Desensitize(new Stack(), (v, t) => v.Desensitize(handleOptions, t));
+            var stack = Stack.Synchronized(new Stack());
+            value = value.Desensitize(stack, (v, t) => v.Desensitize(handleOptions, t ?? tag, cancellationToken), (options ?? DesensitizeOptions.Default).GetParallelOptions(cancellationToken));
+
+            stack.Clear();
+
+            return value;
         }
 
         /// <summary>
@@ -187,22 +245,46 @@ namespace SensitiveWords
         /// <typeparam name="T"></typeparam>
         /// <param name="value"></param>
         /// <param name="sensitiveWordsOptions"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static T Desensitize<T>(this T value, SensitiveWordsOptions sensitiveWordsOptions)
-            where T : class
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T Desensitize<T>(this T value, SensitiveWordsOptions sensitiveWordsOptions, CancellationToken cancellationToken = default) => value.Desensitize(sensitiveWordsOptions, null, cancellationToken);
+
+        /// <summary>
+        /// 指定选项脱敏
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="sensitiveWordsOptions"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static T Desensitize<T>(this T value, SensitiveWordsOptions sensitiveWordsOptions, DesensitizeOptions options, CancellationToken cancellationToken = default)
         {
-            if (null == sensitiveWordsOptions)
+            if (sensitiveWordsOptions is null)
             {
                 throw new ArgumentNullException(nameof(sensitiveWordsOptions));
             }
 
-            if (null == value || !Options.Any())
+            if (null == value || 0 == Options.Count)
             {
                 return value;
             }
 
-            return value.Desensitize(new Stack(), (v, t) => v.Desensitize(sensitiveWordsOptions));
+            if (value is string str)
+            {
+                return (T)str.Desensitize(sensitiveWordsOptions, cancellationToken);
+            }
+
+            var stack = Stack.Synchronized(new Stack());
+            value = value.Desensitize(stack, (v, t) => v.Desensitize(sensitiveWordsOptions, cancellationToken), (options ?? DesensitizeOptions.Default).GetParallelOptions(cancellationToken));
+
+            stack.Clear();
+
+            return value;
         }
 
         /// <summary>
@@ -211,10 +293,11 @@ namespace SensitiveWords
         /// <typeparam name="T"></typeparam>
         /// <param name="value"></param>
         /// <param name="stack"></param>
-        /// <param name="func"></param>
+        /// <param name="func"><![CDATA[Func<Value, Tag, Return>]]></param>
+        /// <param name="parallelOptions"></param>
         /// <returns></returns>
-        private static T Desensitize<T>(this T value, Stack stack, Func<string, string, string> func)
-            where T : class
+        /// <exception cref="OperationCanceledException"></exception>
+        private static T Desensitize<T>(this T value, Stack stack, Func<string, string, object> func, ParallelOptions parallelOptions)
         {
             if (null == value || stack.Contains(value))
             {
@@ -227,85 +310,102 @@ namespace SensitiveWords
                 return value;
             }
 
-            if (typeof(string) == type)
+            if (value is string str)
             {
-                return func(value.ToString(), type.IsDefined(typeof(SensitiveWordsAttribute)) ? type.GetCustomAttribute<SensitiveWordsAttribute>().Tag : null) as T;
+                return (T)func(str, null);
             }
             else if (type.IsClass)
             {
-                stack.Push(value);
+                if (!stack.TryAdd(value))
+                {
+                    return value;
+                }
 
                 if (value is IDictionary dic)
                 {
-                    foreach (DictionaryEntry item in dic)
+                    Parallel.ForEach(dic.Keys.Cast<object>(), parallelOptions, key =>
                     {
-                        if (null != item.Value)
+                        var current = dic[key];
+                        if (null != current)
                         {
-                            dic[item.Key] = item.Value.Desensitize(stack, func);
+                            if (current is string val)
+                            {
+                                if (!dic.IsReadOnly && val.Length > 0)
+                                {
+                                    dic[key] = func(val, null);
+                                }
+                            }
+                            else
+                            {
+                                current.Desensitize(stack, func, parallelOptions);
+                            }
                         }
-                    }
+                    });
                 }
-                else if (value is IList list)
+                else if (value is IEnumerable enumerable)
                 {
-                    for (int i = 0; i < list.Count; i++)
+                    var (IntIndex, LongIndex) = type.GetIndexProperty();
+
+                    Parallel.ForEach(enumerable.Cast<object>(), parallelOptions, (item, _, i) =>
                     {
-                        if (null != list[i])
+                        if (null != item)
                         {
-                            list[i] = list[i].Desensitize(stack, func);
+                            if (item is string val)
+                            {
+                                if (val.Length > 0)
+                                {
+                                    (null != LongIndex || i > int.MaxValue ? LongIndex : IntIndex)?.SetValue(value, func(val, null), new object[] { i });
+                                }
+                            }
+                            else
+                            {
+                                item.Desensitize(stack, func, parallelOptions);
+                            }
                         }
-                    }
+                    });
                 }
                 else
                 {
-                    foreach (var propertyInfo in type.GetProperties())
+                    Parallel.ForEach(type.GetProperties(), parallelOptions, propertyInfo =>
                     {
-                        if (!propertyInfo.CanRead || (typeof(string) != propertyInfo.PropertyType && !propertyInfo.PropertyType.IsClass) || propertyInfo.IsDefined(typeof(IgnoreSensitiveWordsAttribute)))
+                        if (!propertyInfo.CanRead || !(propertyInfo.PropertyType.IsClass || propertyInfo.PropertyType.IsStruct()) || propertyInfo.IsDefined(typeof(IgnoreSensitiveWordsAttribute)))
                         {
-                            continue;
+                            return;
                         }
 
                         var propValue = propertyInfo.GetValue(value);
                         if (null != propValue)
                         {
-                            if (typeof(string) == propertyInfo.PropertyType)
+                            if (propValue is string val)
                             {
-                                if (propertyInfo.CanWrite && !string.IsNullOrEmpty(propValue.ToString()))
+                                if (propertyInfo.CanWrite && val.Length > 0)
                                 {
-                                    propertyInfo.SetValue(value, func(propValue.ToString(), propertyInfo.IsDefined(typeof(SensitiveWordsAttribute)) ? propertyInfo.GetCustomAttribute<SensitiveWordsAttribute>().Tag : null));
+                                    propertyInfo.SetValue(value, func(val, propertyInfo.IsDefined(typeof(SensitiveWordsAttribute)) ? propertyInfo.GetCustomAttribute<SensitiveWordsAttribute>().Tag : null));
                                 }
                             }
-                            else if (propertyInfo.PropertyType.IsClass)
+                            else
                             {
-                                propValue.Desensitize(stack, func);
+                                propValue.Desensitize(stack, func, parallelOptions);
                             }
                         }
-                    }
+                    });
                 }
+            }
+            else if (type.IsStruct())
+            {
+                Parallel.ForEach(type.GetProperties(), parallelOptions, prop =>
+                {
+                    if (!prop.CanRead || !prop.PropertyType.IsClass || typeof(string) == prop.PropertyType || prop.IsDefined(typeof(IgnoreSensitiveWordsAttribute)))
+                    {
+                        return;
+                    }
 
-                stack.Pop();
+                    prop.GetValue(value)?.Desensitize(stack, func, parallelOptions);
+                });
             }
 
             return value;
         }
-
-        /// <summary>
-        /// 是否包含敏感词
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public static bool ContainsSensitiveWords(this string value)
-        {
-            return ContainsSensitiveWords(value, HandleOptions.Default | HandleOptions.Input | HandleOptions.Output);
-        }
-
-        /// <summary>
-        /// 指定类型是否包含敏感词
-        /// </summary>
-        /// <param name="value"></param>
-        /// <param name="handleOptions"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static bool ContainsSensitiveWords(this string value, HandleOptions handleOptions) => value.ContainsSensitiveWords(handleOptions, null);
 
         /// <summary>
         /// 指定类型标签是否包含敏感词
@@ -313,25 +413,24 @@ namespace SensitiveWords
         /// <param name="value"></param>
         /// <param name="handleOptions"></param>
         /// <param name="tag"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static bool ContainsSensitiveWords(this string value, HandleOptions handleOptions, string tag)
+        /// <exception cref="OperationCanceledException"></exception>
+        private static bool ContainsSensitiveWords(this string value, HandleOptions handleOptions, string tag, DesensitizeOptions options, CancellationToken cancellationToken = default)
         {
-            if (handleOptions < HandleOptions.Default || handleOptions > (HandleOptions.Default | HandleOptions.Input | HandleOptions.Output))
-            {
-                throw new ArgumentOutOfRangeException(nameof(handleOptions));
-            }
-
-            if (string.IsNullOrEmpty(value) || !Options.Any())
+            if (string.IsNullOrEmpty(value))
             {
                 return false;
             }
 
             foreach (var sensitiveWordsOptions in Options)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if ((handleOptions & sensitiveWordsOptions.HandleOptions) > 0 && (null == tag || sensitiveWordsOptions.Tag == tag))
                 {
-                    if (sensitiveWordsOptions.IsMatch(value))
+                    if (sensitiveWordsOptions.IsMatch(value, options, cancellationToken))
                     {
                         return true;
                     }
@@ -346,55 +445,105 @@ namespace SensitiveWords
         /// </summary>
         /// <param name="value"></param>
         /// <param name="sensitiveWordsOptions"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static bool ContainsSensitiveWords(this string value, SensitiveWordsOptions sensitiveWordsOptions)
+        /// <exception cref="OperationCanceledException"></exception>
+        private static bool ContainsSensitiveWords(this string value, SensitiveWordsOptions sensitiveWordsOptions, DesensitizeOptions options, CancellationToken cancellationToken = default)
         {
-            if (null == sensitiveWordsOptions)
-            {
-                throw new ArgumentNullException(nameof(sensitiveWordsOptions));
-            }
-
-            if (string.IsNullOrEmpty(value) || !Options.Any())
+            if (string.IsNullOrEmpty(value))
             {
                 return false;
             }
 
-            return sensitiveWordsOptions.IsMatch(value);
+            return sensitiveWordsOptions.IsMatch(value, options, cancellationToken);
         }
 
         /// <summary>
         /// 是否包含敏感词
         /// </summary>
         /// <param name="value"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static bool ContainsSensitiveWords<T>(this T value)
-            where T : class
-        {
-            return ContainsSensitiveWords(value, HandleOptions.Default | HandleOptions.Input | HandleOptions.Output);
-        }
+        /// <exception cref="OperationCanceledException"></exception>
+        public static bool ContainsSensitiveWords<T>(this T value, CancellationToken cancellationToken = default) => value.ContainsSensitiveWords(options: null, cancellationToken);
+
+        /// <summary>
+        /// 是否包含敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static bool ContainsSensitiveWords<T>(this T value, DesensitizeOptions options, CancellationToken cancellationToken = default) => value.ContainsSensitiveWords(HandleOptions.Default | HandleOptions.Input | HandleOptions.Output, options, cancellationToken);
 
         /// <summary>
         /// 指定类型是否包含敏感词
         /// </summary>
         /// <param name="value"></param>
         /// <param name="handleOptions"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static bool ContainsSensitiveWords<T>(this T value, HandleOptions handleOptions)
-            where T : class
-        {
-            if (handleOptions < HandleOptions.Default || handleOptions > (HandleOptions.Default | HandleOptions.Input | HandleOptions.Output))
-            {
-                throw new ArgumentOutOfRangeException(nameof(handleOptions));
-            }
+        /// <exception cref="OperationCanceledException"></exception>
+        public static bool ContainsSensitiveWords<T>(this T value, HandleOptions handleOptions, CancellationToken cancellationToken = default) => value.ContainsSensitiveWords(handleOptions, options: null, cancellationToken);
 
-            if (null == value || !Options.Any())
+        /// <summary>
+        /// 指定类型是否包含敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="handleOptions"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static bool ContainsSensitiveWords<T>(this T value, HandleOptions handleOptions, DesensitizeOptions options, CancellationToken cancellationToken = default) => value.ContainsSensitiveWords(handleOptions, null, options, cancellationToken);
+
+        /// <summary>
+        /// 指定类型标签是否包含敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="handleOptions"></param>
+        /// <param name="tag"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static bool ContainsSensitiveWords<T>(this T value, HandleOptions handleOptions, string tag, CancellationToken cancellationToken = default) => value.ContainsSensitiveWords(handleOptions, tag, null, cancellationToken);
+
+        /// <summary>
+        /// 指定类型标签是否包含敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="handleOptions"></param>
+        /// <param name="tag"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static bool ContainsSensitiveWords<T>(this T value, HandleOptions handleOptions, string tag, DesensitizeOptions options, CancellationToken cancellationToken = default)
+        {
+            if (null == value || 0 == Options.Count)
             {
                 return false;
             }
 
-            return ContainsSensitiveWords(value, new Stack(), (v, t) => v.ContainsSensitiveWords(handleOptions, t));
+            handleOptions.Valid();
+
+            if (value is string str)
+            {
+                return str.ContainsSensitiveWords(handleOptions, tag, options, cancellationToken);
+            }
+
+            var stack = Stack.Synchronized(new Stack());
+            var contains = ContainsSensitiveWords(value, stack, (v, t) => v.ContainsSensitiveWords(handleOptions, t ?? tag, options, cancellationToken), (options ?? DesensitizeOptions.Default).GetParallelOptions(cancellationToken));
+
+            stack.Clear();
+
+            return contains;
         }
 
         /// <summary>
@@ -402,22 +551,45 @@ namespace SensitiveWords
         /// </summary>
         /// <param name="value"></param>
         /// <param name="sensitiveWordsOptions"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static bool ContainsSensitiveWords<T>(this T value, SensitiveWordsOptions sensitiveWordsOptions)
-            where T : class
+        /// <exception cref="OperationCanceledException"></exception>
+        public static bool ContainsSensitiveWords<T>(this T value, SensitiveWordsOptions sensitiveWordsOptions, CancellationToken cancellationToken = default) => value.ContainsSensitiveWords(sensitiveWordsOptions, null, cancellationToken);
+
+        /// <summary>
+        /// 指定选项是否包含敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="sensitiveWordsOptions"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static bool ContainsSensitiveWords<T>(this T value, SensitiveWordsOptions sensitiveWordsOptions, DesensitizeOptions options, CancellationToken cancellationToken = default)
         {
-            if (null == sensitiveWordsOptions)
+            if (sensitiveWordsOptions is null)
             {
                 throw new ArgumentNullException(nameof(sensitiveWordsOptions));
             }
 
-            if (null == value || !Options.Any())
+            if (null == value || 0 == Options.Count)
             {
                 return false;
             }
 
-            return ContainsSensitiveWords(value, new Stack(), (v, t) => v.ContainsSensitiveWords(sensitiveWordsOptions));
+            if (value is string str)
+            {
+                return str.ContainsSensitiveWords(sensitiveWordsOptions, options, cancellationToken);
+            }
+
+            var stack = Stack.Synchronized(new Stack());
+            var contains = ContainsSensitiveWords(value, stack, (v, t) => v.ContainsSensitiveWords(sensitiveWordsOptions, options, cancellationToken), (options ?? DesensitizeOptions.Default).GetParallelOptions(cancellationToken));
+
+            stack.Clear();
+
+            return contains;
         }
 
         /// <summary>
@@ -426,12 +598,19 @@ namespace SensitiveWords
         /// <typeparam name="T"></typeparam>
         /// <param name="value"></param>
         /// <param name="stack"></param>
-        /// <param name="func"></param>
+        /// <param name="func"><![CDATA[Func<Value, Tag, Return>]]></param>
+        /// <param name="parallelOptions"></param>
+        /// <param name="matchCount"></param>
         /// <returns></returns>
-        private static bool ContainsSensitiveWords<T>(this T value, Stack stack, Func<string, string, bool> func)
-            where T : class
+        /// <exception cref="OperationCanceledException"></exception>
+        private static bool ContainsSensitiveWords<T>(this T value, Stack stack, Func<string, string, bool> func, ParallelOptions parallelOptions, int matchCount = 0)
         {
-            if (null == value || !Options.Any() || stack.Contains(value))
+            if (matchCount > 0)
+            {
+                return true;
+            }
+
+            if (null == value || stack.Contains(value))
             {
                 return false;
             }
@@ -442,77 +621,456 @@ namespace SensitiveWords
                 return false;
             }
 
-            if (typeof(string) == type)
+            void Matched(ParallelLoopState state)
             {
-                return func(value.ToString(), type.IsDefined(typeof(SensitiveWordsAttribute)) ? type.GetCustomAttribute<SensitiveWordsAttribute>().Tag : null);
+                state.Stop();
+
+                Interlocked.Increment(ref matchCount);
+            }
+
+            if (value is string str)
+            {
+                return func(str, null);
             }
             else if (type.IsClass)
             {
-                stack.Push(value);
+                if (!stack.TryAdd(value))
+                {
+                    return false;
+                }
 
                 if (value is IDictionary dic)
                 {
-                    foreach (DictionaryEntry item in dic)
+                    Parallel.ForEach(dic.Keys.Cast<object>(), parallelOptions, (key, state) =>
                     {
-                        if (null != item.Value)
+                        if (0 == matchCount)
                         {
-                            if (item.Value.ContainsSensitiveWords(stack, func))
+                            var current = dic[key];
+                            if (null != current)
                             {
-                                return true;
+                                if (current is string val)
+                                {
+                                    if (!dic.IsReadOnly && val.Length > 0 && func(val, null))
+                                    {
+                                        Matched(state);
+                                    }
+                                }
+                                else
+                                {
+                                    if (current.ContainsSensitiveWords(stack, func, parallelOptions, matchCount))
+                                    {
+                                        Matched(state);
+                                    }
+                                }
                             }
                         }
-                    }
+                    });
                 }
-                else if (value is IList list)
+                else if (value is IEnumerable enumerable)
                 {
-                    for (int i = 0; i < list.Count; i++)
+                    var (IntIndex, LongIndex) = type.GetIndexProperty();
+
+                    Parallel.ForEach(enumerable.Cast<object>(), parallelOptions, (item, state, i) =>
                     {
-                        if (null != list[i])
+                        if (0 == matchCount && null != item)
                         {
-                            if (list[i].ContainsSensitiveWords(stack, func))
+                            if (item is string val)
                             {
-                                return true;
+                                if (val.Length > 0 && (null != (null != LongIndex || i > int.MaxValue ? LongIndex : IntIndex)) && func(val, null))
+                                {
+                                    Matched(state);
+                                }
+                            }
+                            else if (item.ContainsSensitiveWords(stack, func, parallelOptions, matchCount))
+                            {
+                                Matched(state);
                             }
                         }
-                    }
+                    });
                 }
                 else
                 {
-                    foreach (var propertyInfo in type.GetProperties())
+                    Parallel.ForEach(type.GetProperties(), parallelOptions, (prop, state) =>
                     {
-                        if (!propertyInfo.CanRead || (typeof(string) != propertyInfo.PropertyType && !propertyInfo.PropertyType.IsClass) || propertyInfo.IsDefined(typeof(IgnoreSensitiveWordsAttribute)))
+                        if (matchCount > 0 || !prop.CanRead || !(prop.PropertyType.IsClass || prop.PropertyType.IsStruct()) || prop.IsDefined(typeof(IgnoreSensitiveWordsAttribute)))
                         {
-                            continue;
+                            return;
+                        }
+
+                        var propValue = prop.GetValue(value);
+                        if (null != propValue)
+                        {
+                            if (propValue is string val)
+                            {
+                                if (prop.CanWrite && val.Length > 0 && func(val, prop.IsDefined(typeof(SensitiveWordsAttribute)) ? prop.GetCustomAttribute<SensitiveWordsAttribute>().Tag : null))
+                                {
+                                    Matched(state);
+                                }
+                            }
+                            else if (propValue.ContainsSensitiveWords(stack, func, parallelOptions, matchCount))
+                            {
+                                Matched(state);
+                            }
+                        }
+                    });
+                }
+            }
+            else if (type.IsStruct())
+            {
+                Parallel.ForEach(type.GetProperties(), parallelOptions, (prop, state) =>
+                {
+                    if (matchCount > 0 || !prop.CanRead || !prop.PropertyType.IsClass || typeof(string) == prop.PropertyType || prop.IsDefined(typeof(IgnoreSensitiveWordsAttribute)))
+                    {
+                        return;
+                    }
+
+                    var propValue = prop.GetValue(value);
+                    if (null != propValue && propValue.ContainsSensitiveWords(stack, func, parallelOptions, matchCount))
+                    {
+                        Matched(state);
+                    }
+                });
+            }
+
+            return matchCount > 0;
+        }
+
+        /// <summary>
+        /// 指定类型标签匹配敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="handleOptions"></param>
+        /// <param name="tag"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="OperationCanceledException"></exception>
+        private static MatchResultCollection MatcheSensitiveWords(this string value, HandleOptions handleOptions, string tag, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return new MatchResultCollection();
+            }
+
+            var matches = new ConcurrentBag<MatchResult>();
+            foreach (var sensitiveWordsOptions in Options)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if ((handleOptions & sensitiveWordsOptions.HandleOptions) > 0 && (null == tag || sensitiveWordsOptions.Tag == tag))
+                {
+                    var current = sensitiveWordsOptions.Matches(value, cancellationToken);
+                    if (current.IsMatch)
+                    {
+                        matches.Add(current);
+                    }
+                }
+            }
+
+            return new MatchResultCollection(matches.ToList());
+        }
+
+        /// <summary>
+        /// 指定选项匹配敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="sensitiveWordsOptions"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="OperationCanceledException"></exception>
+        private static MatchResultCollection MatcheSensitiveWords(this string value, SensitiveWordsOptions sensitiveWordsOptions, CancellationToken cancellationToken = default)
+        {
+            var matches = new MatchResultCollection();
+            if (string.IsNullOrEmpty(value))
+            {
+                return matches;
+            }
+
+            var current = sensitiveWordsOptions.Matches(value, cancellationToken);
+            if (current.IsMatch)
+            {
+                matches.Add(current);
+            }
+
+            return matches;
+        }
+
+        /// <summary>
+        /// 匹配含敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static MatchResultCollection MatcheSensitiveWords<T>(this T value, CancellationToken cancellationToken = default) => value.MatcheSensitiveWords(options: null, cancellationToken);
+
+        /// <summary>
+        /// 匹配含敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static MatchResultCollection MatcheSensitiveWords<T>(this T value, DesensitizeOptions options, CancellationToken cancellationToken = default) => value.MatcheSensitiveWords(HandleOptions.Default | HandleOptions.Input | HandleOptions.Output, options, cancellationToken);
+
+        /// <summary>
+        /// 指定类型匹配敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="handleOptions"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static MatchResultCollection MatcheSensitiveWords<T>(this T value, HandleOptions handleOptions, CancellationToken cancellationToken = default) => value.MatcheSensitiveWords(handleOptions, options: null, cancellationToken);
+
+        /// <summary>
+        /// 指定类型匹配敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="handleOptions"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static MatchResultCollection MatcheSensitiveWords<T>(this T value, HandleOptions handleOptions, DesensitizeOptions options, CancellationToken cancellationToken = default) => value.MatcheSensitiveWords(handleOptions, null, options, cancellationToken);
+
+        /// <summary>
+        /// 指定类型标签匹配敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="handleOptions"></param>
+        /// <param name="tag"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static MatchResultCollection MatcheSensitiveWords<T>(this T value, HandleOptions handleOptions, string tag, CancellationToken cancellationToken = default) => value.MatcheSensitiveWords(handleOptions, tag, null, cancellationToken);
+
+        /// <summary>
+        /// 指定类型标签匹配敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="handleOptions"></param>
+        /// <param name="tag"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static MatchResultCollection MatcheSensitiveWords<T>(this T value, HandleOptions handleOptions, string tag, DesensitizeOptions options, CancellationToken cancellationToken = default)
+        {
+            if (null == value || 0 == Options.Count)
+            {
+                return new MatchResultCollection();
+            }
+
+            handleOptions.Valid();
+
+            if (value is string str)
+            {
+                return str.MatcheSensitiveWords(handleOptions, tag, cancellationToken);
+            }
+
+            var matches = new ConcurrentBag<MatchResult>();
+            var stack = Stack.Synchronized(new Stack());
+            MatcheSensitiveWords(value, stack, (v, t) => v.MatcheSensitiveWords(handleOptions, t ?? tag, cancellationToken), matches, (options ?? DesensitizeOptions.Default).GetParallelOptions(cancellationToken));
+
+            stack.Clear();
+
+            return new MatchResultCollection(matches.ToList());
+        }
+
+        /// <summary>
+        /// 指定选项匹配敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="sensitiveWordsOptions"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static MatchResultCollection MatcheSensitiveWords<T>(this T value, SensitiveWordsOptions sensitiveWordsOptions, CancellationToken cancellationToken = default) => value.MatcheSensitiveWords(sensitiveWordsOptions, null, cancellationToken);
+
+        /// <summary>
+        /// 指定选项匹配敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="sensitiveWordsOptions"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static MatchResultCollection MatcheSensitiveWords<T>(this T value, SensitiveWordsOptions sensitiveWordsOptions, DesensitizeOptions options, CancellationToken cancellationToken = default)
+        {
+            if (sensitiveWordsOptions is null)
+            {
+                throw new ArgumentNullException(nameof(sensitiveWordsOptions));
+            }
+
+            if (null == value || 0 == Options.Count)
+            {
+                return new MatchResultCollection();
+            }
+
+            if (value is string str)
+            {
+                return str.MatcheSensitiveWords(sensitiveWordsOptions, cancellationToken);
+            }
+
+            var matches = new ConcurrentBag<MatchResult>();
+            var stack = Stack.Synchronized(new Stack());
+            MatcheSensitiveWords(value, stack, (v, t) => v.MatcheSensitiveWords(sensitiveWordsOptions, cancellationToken), matches, (options ?? DesensitizeOptions.Default).GetParallelOptions(cancellationToken));
+
+            stack.Clear();
+
+            return new MatchResultCollection(matches.ToList());
+        }
+
+        /// <summary>
+        /// 匹配敏感词
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="stack"></param>
+        /// <param name="func"><![CDATA[Func<Value, Tag, Return>]]></param>
+        /// <param name="matches"></param>
+        /// <param name="parallelOptions"></param>
+        /// <returns></returns>
+        /// <exception cref="OperationCanceledException"></exception>
+        private static void MatcheSensitiveWords<T>(this T value, Stack stack, Func<string, string, MatchResultCollection> func, ConcurrentBag<MatchResult> matches, ParallelOptions parallelOptions)
+        {
+            if (null == value || stack.Contains(value))
+            {
+                return;
+            }
+
+            var type = value.GetType();
+            if (type.IsDefined(typeof(IgnoreSensitiveWordsAttribute)))
+            {
+                return;
+            }
+
+            void Matched(MatchResultCollection matchResults)
+            {
+                foreach (var item in matchResults)
+                {
+                    matches.Add(item);
+                }
+            }
+
+            if (value is string str)
+            {
+                Matched(func(str, null));
+
+                return;
+            }
+            else if (type.IsClass)
+            {
+                if (!stack.TryAdd(value))
+                {
+                    return;
+                }
+
+                if (value is IDictionary dic)
+                {
+                    Parallel.ForEach(dic.Keys.Cast<object>(), parallelOptions, key =>
+                    {
+                        var current = dic[key];
+                        if (null != current)
+                        {
+                            if (current is string val)
+                            {
+                                if (!dic.IsReadOnly && val.Length > 0)
+                                {
+                                    Matched(func(val, null));
+                                }
+                            }
+                            else
+                            {
+                                current.MatcheSensitiveWords(stack, func, matches, parallelOptions);
+                            }
+                        }
+                    });
+                }
+                else if (value is IEnumerable enumerable)
+                {
+                    var (IntIndex, LongIndex) = type.GetIndexProperty();
+
+                    Parallel.ForEach(enumerable.Cast<object>(), parallelOptions, (item, _, i) =>
+                    {
+                        if (null != item)
+                        {
+                            if (item is string val)
+                            {
+                                if (val.Length > 0 && null != (null != LongIndex || i > int.MaxValue ? LongIndex : IntIndex))
+                                {
+                                    Matched(func(val, null));
+                                }
+                            }
+                            else
+                            {
+                                item.MatcheSensitiveWords(stack, func, matches, parallelOptions);
+                            }
+                        }
+                    });
+                }
+                else
+                {
+                    Parallel.ForEach(type.GetProperties(), parallelOptions, propertyInfo =>
+                    {
+                        if (!propertyInfo.CanRead || !(propertyInfo.PropertyType.IsClass || propertyInfo.PropertyType.IsStruct()) || propertyInfo.IsDefined(typeof(IgnoreSensitiveWordsAttribute)))
+                        {
+                            return;
                         }
 
                         var propValue = propertyInfo.GetValue(value);
                         if (null != propValue)
                         {
-                            if (typeof(string) == propertyInfo.PropertyType)
+                            if (propValue is string val)
                             {
-                                if (propertyInfo.CanWrite && !string.IsNullOrEmpty(propValue.ToString()))
+                                if (propertyInfo.CanWrite && val.Length > 0)
                                 {
-                                    if (func(propValue.ToString(), propertyInfo.IsDefined(typeof(SensitiveWordsAttribute)) ? propertyInfo.GetCustomAttribute<SensitiveWordsAttribute>().Tag : null))
-                                    {
-                                        return true;
-                                    }
+                                    Matched(func(val, propertyInfo.IsDefined(typeof(SensitiveWordsAttribute)) ? propertyInfo.GetCustomAttribute<SensitiveWordsAttribute>().Tag : null));
                                 }
                             }
-                            else if (propertyInfo.PropertyType.IsClass)
+                            else
                             {
-                                if (propValue.ContainsSensitiveWords(stack, func))
-                                {
-                                    return true;
-                                }
+                                propValue.MatcheSensitiveWords(stack, func, matches, parallelOptions);
                             }
                         }
-                    }
+                    });
                 }
+            }
+            else if (type.IsStruct())
+            {
+                Parallel.ForEach(type.GetProperties(), parallelOptions, prop =>
+                {
+                    if (!prop.CanRead || !prop.PropertyType.IsClass || typeof(string) == prop.PropertyType || prop.IsDefined(typeof(IgnoreSensitiveWordsAttribute)))
+                    {
+                        return;
+                    }
 
-                stack.Pop();
+                    prop.GetValue(value)?.MatcheSensitiveWords(stack, func, matches, parallelOptions);
+                });
             }
 
-            return false;
+            return;
+        }
+
+        /// <summary>
+        /// Valid
+        /// </summary>
+        /// <param name="handleOptions"></param>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        private static void Valid(this HandleOptions handleOptions)
+        {
+            if (0 != (handleOptions & ~(HandleOptions.Default | HandleOptions.Input | HandleOptions.Output)) || handleOptions < HandleOptions.Default)
+            {
+                throw new ArgumentOutOfRangeException(nameof(handleOptions));
+            }
         }
     }
 }

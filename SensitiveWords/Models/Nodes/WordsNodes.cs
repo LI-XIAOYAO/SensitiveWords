@@ -1,25 +1,42 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading;
 
 namespace SensitiveWords
 {
     /// <summary>
     /// 字符节点集
     /// </summary>
-    public class WordsNodes : InternalReadOnlyCollection<WordsNode>
+    public class WordsNodes : InternalReadOnlyDictionary<char, WordsNode>
     {
+        /// <summary>
+        /// 字符节点集
+        /// </summary>
+        /// <param name="ignoreCase"></param>
+        protected internal WordsNodes(bool ignoreCase)
+            : base(ignoreCase ? new CharIgnoreCaseComparer() : null)
+        {
+            IgnoreCase = ignoreCase;
+        }
+
+        /// <summary>
+        /// 是否忽略大小写
+        /// </summary>
+        public bool IgnoreCase { get; }
+
         /// <summary>
         /// 有效词组数
         /// </summary>
-        public int WordsCount => Items.Sum(c => c.WordsCount);
+        public int WordsCount => Values.Sum(c => c.WordsCount);
 
         /// <summary>
         /// 是否存在节点
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public bool ContainsNode(char value) => Items.Any(c => c.ValueEquals(value));
+        public bool ContainsNode(char value) => ContainsKey(value);
 
         /// <summary>
         /// 构建词组节点集
@@ -35,21 +52,22 @@ namespace SensitiveWords
                 throw new ArgumentNullException(nameof(list));
             }
 
-            var root = new WordsNodes();
+            var root = new WordsNodes(ignoreCase);
             foreach (var words in list)
             {
-                var current = root;
+                var currentNodes = root;
                 for (int i = 0; i < words.Length; i++)
                 {
-                    var wordsNode = 0 == i ? root.Find(words[i]) : current.Find(words[i]);
+                    var current = words[i];
+                    var wordsNode = (0 == i ? root : currentNodes)[current];
+
                     if (null == wordsNode)
                     {
-                        current.Add(wordsNode = WordsNode.Create(words[i], i == words.Length - 1, ignoreCase));
+                        currentNodes.Add(current, wordsNode = WordsNode.Create(current, i == words.Length - 1, ignoreCase));
                     }
 
                     wordsNode.IsEnd |= i == words.Length - 1;
-
-                    current = wordsNode.Nodes;
+                    currentNodes = wordsNode.Nodes;
                 }
             }
 
@@ -57,73 +75,14 @@ namespace SensitiveWords
         }
 
         /// <summary>
-        /// 查找节点
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public WordsNode Find(char value) => Items.FirstOrDefault(c => c.ValueEquals(value));
-
-        /// <summary>
         /// 匹配字符串
         /// </summary>
         /// <param name="text"></param>
         /// <param name="isMaxMatch"></param>
         /// <param name="whiteSpaceOptions"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public NodeCaptures Matches(string text, bool isMaxMatch = true, WhiteSpaceOptions whiteSpaceOptions = WhiteSpaceOptions.Default)
-        {
-            var nodeCaptures = new NodeCaptures(text, this);
-
-            if (string.IsNullOrEmpty(text) || 0 == Count)
-            {
-                return nodeCaptures;
-            }
-
-            for (int i = 0, position = 0; i < text.Length; position = ++i)
-            {
-                i = Match(this, i, position);
-            }
-
-            int Match(WordsNodes wordsNodes, int i, int position)
-            {
-                if (i < text.Length)
-                {
-                    var node = wordsNodes.Find(text[i]);
-                    if (null == node && i > position)
-                    {
-                        MoveIndex(text, ref i, whiteSpaceOptions);
-                        node = wordsNodes.Find(text[i]);
-                    }
-
-                    if (null != node)
-                    {
-                        if (node.IsEnd && !(isMaxMatch && node.HasNodes()))
-                        {
-                            nodeCaptures.Add(new NodeCapture(position, i - position + 1));
-                            position = i;
-                        }
-                        else
-                        {
-                            var p = position;
-                            if (node.HasNodes())
-                            {
-                                position = Match(node.Nodes, ++i, position);
-                            }
-
-                            if (node.IsEnd && p == position)
-                            {
-                                nodeCaptures.Add(new NodeCapture(position, i - position));
-                                position = i - 1;
-                            }
-                        }
-                    }
-                }
-
-                return position;
-            }
-
-            return nodeCaptures;
-        }
+        public NodeCaptures Matches(string text, bool isMaxMatch = true, WhiteSpaceOptions whiteSpaceOptions = WhiteSpaceOptions.Default, CancellationToken cancellationToken = default) => new NodeCaptures(text, this, isMaxMatch, whiteSpaceOptions, cancellationToken);
 
         /// <summary>
         /// 替换为指定字符串
@@ -132,8 +91,9 @@ namespace SensitiveWords
         /// <param name="replacement"></param>
         /// <param name="isMaxMatch"></param>
         /// <param name="whiteSpaceOptions"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public string Replace(string text, string replacement, bool isMaxMatch = true, WhiteSpaceOptions whiteSpaceOptions = WhiteSpaceOptions.Default) => Replace(text, c => replacement, isMaxMatch, whiteSpaceOptions);
+        public string Replace(string text, string replacement, bool isMaxMatch = true, WhiteSpaceOptions whiteSpaceOptions = WhiteSpaceOptions.Default, CancellationToken cancellationToken = default) => Replace(text, c => replacement, isMaxMatch, whiteSpaceOptions, cancellationToken);
 
         /// <summary>
         /// 替换
@@ -142,64 +102,67 @@ namespace SensitiveWords
         /// <param name="matchEvaluator"></param>
         /// <param name="isMaxMatch"></param>
         /// <param name="whiteSpaceOptions"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public string Replace(string text, Func<NodeCapture, string> matchEvaluator, bool isMaxMatch = true, WhiteSpaceOptions whiteSpaceOptions = WhiteSpaceOptions.Default)
+        public string Replace(string text, Func<NodeCapture, string> matchEvaluator, bool isMaxMatch = true, WhiteSpaceOptions whiteSpaceOptions = WhiteSpaceOptions.Default, CancellationToken cancellationToken = default)
         {
             if (null == matchEvaluator)
             {
                 return text;
             }
 
-            var nodeCaptures = Matches(text, isMaxMatch, whiteSpaceOptions);
+            var nodeCaptures = Matches(text, isMaxMatch, whiteSpaceOptions, cancellationToken);
             if (0 == nodeCaptures.Count)
             {
                 return text;
             }
 
-            return nodeCaptures.Replace(matchEvaluator);
+            return nodeCaptures.Replace(matchEvaluator, cancellationToken);
         }
 
         /// <summary>
         /// 获取有效词组
         /// </summary>
         /// <returns></returns>
-        public List<string> GetWords()
+        public List<string> GetWords(CancellationToken cancellationToken = default)
         {
             var list = new List<string>();
-            GetWords(this, string.Empty);
-
-            void GetWords(WordsNodes wordsNode, string value)
+            void GetWords(WordsNodes wordsNodes, StringBuilder stringBuilder = null)
             {
-                foreach (var item in wordsNode)
+                foreach (var item in wordsNodes.Values)
                 {
-                    var val = $"{value}{item.Value}";
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var nodeStringBuilder = wordsNodes.Count > 1 ? new StringBuilder(stringBuilder?.ToString()) : stringBuilder ?? new StringBuilder();
+                    nodeStringBuilder.Append(item.Value);
+
                     if (item.IsEnd)
                     {
-                        list.Add(val);
+                        list.Add(nodeStringBuilder.ToString());
                     }
 
                     if (item.Nodes.Count > 0)
                     {
-                        GetWords(item.Nodes, val);
+                        GetWords(item.Nodes, nodeStringBuilder);
                     }
                 }
             }
 
+            GetWords(this);
+
             return list;
         }
 
-        /// <summary>
-        /// 获取忽略空白后的索引
-        /// </summary>
-        /// <param name="text"></param>
-        /// <param name="index"></param>
-        /// <param name="whiteSpaceOptions"></param>
-        private static void MoveIndex(string text, ref int index, WhiteSpaceOptions whiteSpaceOptions)
+        private class CharIgnoreCaseComparer : IEqualityComparer<char>
         {
-            while ((((whiteSpaceOptions & WhiteSpaceOptions.IgnoreWhiteSpace) > 0 && text[index] is ' ') || ((whiteSpaceOptions & WhiteSpaceOptions.IgnoreNewLine) > 0 && (text[index] is '\r' || text[index] is '\n')))
-                && index < text.Length - 1)
+            public bool Equals(char x, char y)
             {
-                index++;
+                return StringComparer.OrdinalIgnoreCase.Equals(x.ToString(), y.ToString());
+            }
+
+            public int GetHashCode(char obj)
+            {
+                return StringComparer.OrdinalIgnoreCase.GetHashCode(obj.ToString());
             }
         }
     }

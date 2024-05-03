@@ -19,6 +19,8 @@ namespace SensitiveWordsTests
 
         public Dictionary<string, string> P8 { get; set; }
 
+        public TestStruct P9 { get; set; }
+
         public class Test1
         {
             public string P1 { get; set; }
@@ -40,6 +42,13 @@ namespace SensitiveWordsTests
 
             [SensitiveWords("SWTest")]
             public string P3 { get; set; }
+        }
+
+        public struct TestStruct
+        {
+            public int P1 { get; set; }
+            public string P2 { get; set; }
+            public Test1 P3 { get; set; }
         }
     }
 }

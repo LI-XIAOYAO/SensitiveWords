@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace SensitiveWords
 {
@@ -8,23 +9,76 @@ namespace SensitiveWords
     /// </summary>
     public class NodeCaptures : InternalReadOnlyCollection<NodeCapture>
     {
-        internal NodeCaptures(string value, WordsNodes wordsNodes)
+        private readonly WordsNodes _wordsNodes;
+
+        internal NodeCaptures(string value, WordsNodes wordsNodes, bool isMaxMatch, WhiteSpaceOptions whiteSpaceOptions, CancellationToken cancellationToken)
         {
             Value = value;
             _wordsNodes = wordsNodes;
+
+            if (string.IsNullOrEmpty(value) || 0 == wordsNodes.Count)
+            {
+                return;
+            }
+
+            var isIgnoreWhiteSpace = (whiteSpaceOptions & (WhiteSpaceOptions.IgnoreWhiteSpace | WhiteSpaceOptions.IgnoreNewLine)) > 0;
+
+            for (int i = 0, position = 0; i < value.Length; position = ++i)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                i = Match(wordsNodes, i, position);
+            }
+
+            int Match(WordsNodes nodes, int i, int position)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (i < value.Length)
+                {
+                    var node = nodes[value[i]];
+                    if (null == node && i > position && isIgnoreWhiteSpace)
+                    {
+                        node = nodes[value[i = MoveIndex(value, i, whiteSpaceOptions, cancellationToken)]];
+                    }
+
+                    if (null != node)
+                    {
+                        if (node.IsEnd && !(isMaxMatch && node.HasNodes()))
+                        {
+                            Add(new NodeCapture(position, i - position + 1));
+                            position = i;
+                        }
+                        else
+                        {
+                            var p = position;
+                            if (node.HasNodes())
+                            {
+                                position = Match(node.Nodes, ++i, position);
+                            }
+
+                            if (node.IsEnd && p == position)
+                            {
+                                Add(new NodeCapture(position, i - position));
+                                position = i - 1;
+                            }
+                        }
+                    }
+                }
+
+                return position;
+            }
         }
 
         /// <summary>
         /// 节点捕获集
         /// </summary>
-        public IReadOnlyCollection<NodeCapture> Captures => (IReadOnlyCollection<NodeCapture>)Items;
-
-        private readonly WordsNodes _wordsNodes;
+        public IReadOnlyList<NodeCapture> Captures => this;
 
         /// <summary>
         /// 单词节点集
         /// </summary>
-        public IReadOnlyCollection<WordsNode> WordsNodes => _wordsNodes;
+        public WordsNodes WordsNodes => _wordsNodes;
 
         /// <summary>
         /// 捕获值
@@ -49,21 +103,45 @@ namespace SensitiveWords
         }
 
         /// <summary>
+        /// 获取忽略空白后的索引
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="index"></param>
+        /// <param name="whiteSpaceOptions"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        private static int MoveIndex(string text, int index, WhiteSpaceOptions whiteSpaceOptions, CancellationToken cancellationToken)
+        {
+            while ((((whiteSpaceOptions & WhiteSpaceOptions.IgnoreWhiteSpace) > 0 && text[index] is ' ') || ((whiteSpaceOptions & WhiteSpaceOptions.IgnoreNewLine) > 0 && (text[index] is '\r' || text[index] is '\n')))
+                && index < text.Length - 1)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                index++;
+            }
+
+            return index;
+        }
+
+        /// <summary>
         /// 替换
         /// </summary>
         /// <param name="matchEvaluator"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public string Replace(Func<NodeCapture, string> matchEvaluator)
+        public string Replace(Func<NodeCapture, string> matchEvaluator, CancellationToken cancellationToken = default)
         {
-            if (null == matchEvaluator || 0 == Items.Count)
+            if (null == matchEvaluator || 0 == Count)
             {
                 return Value;
             }
 
             var offset = 0;
             var text = Value;
-            foreach (var nodeCapture in Items)
+            foreach (var nodeCapture in this)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var replacement = matchEvaluator(nodeCapture) ?? string.Empty;
                 if (replacement != nodeCapture.Value)
                 {
@@ -80,9 +158,9 @@ namespace SensitiveWords
         /// 替换为指定字符串
         /// </summary>
         /// <param name="replacement"></param>
-        /// <param name="isMaxMatch"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public string Replace(string replacement) => Replace(c => replacement);
+        public string Replace(string replacement, CancellationToken cancellationToken = default) => Replace(c => replacement, cancellationToken);
 
         /// <summary>
         /// <inheritdoc/>

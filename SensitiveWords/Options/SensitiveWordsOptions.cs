@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SensitiveWords
 {
@@ -12,31 +14,34 @@ namespace SensitiveWords
     public sealed class SensitiveWordsOptions
     {
         /// <summary>
-        /// SensitiveWords
-        /// </summary>
-        private ISet<string> SensitiveWords { get; } = new HashSet<string>();
-
-        /// <summary>
-        /// SimpleSensitiveWords
-        /// </summary>
-        private ISet<string> SimpleSensitiveWords { get; } = new HashSet<string>();
-
-        /// <summary>
-        /// RegexSensitiveWords
-        /// </summary>
-        private ISet<string> RegexSensitiveWords { get; } = new HashSet<string>();
-
-        /// <summary>
-        /// FullPaths
-        /// </summary>
-        private readonly ISet<string> _fullPaths = new HashSet<string>();
-
-        /// <summary>
         /// 正则元字符
         /// </summary>
         private static readonly char[] _regexMetacharacters = new[] { '\\', '*', '+', '?', '|', '{', '[', '(', ')', '^', '$', '.', '#' };
 
-        private WordsNodes WordsNodes { get; set; }
+        /// <summary>
+        /// FullPaths
+        /// </summary>
+        private readonly HashSet<string> _fullPaths = new HashSet<string>();
+
+        /// <summary>
+        /// SensitiveWords
+        /// </summary>
+        private readonly HashSet<string> _sensitiveWords = new HashSet<string>();
+
+        /// <summary>
+        /// SimpleSensitiveWords
+        /// </summary>
+        private readonly HashSet<string> _simpleSensitiveWords = new HashSet<string>();
+
+        /// <summary>
+        /// RegexSensitiveWords
+        /// </summary>
+        private readonly HashSet<string> _regexSensitiveWords = new HashSet<string>();
+
+        /// <summary>
+        /// WordsNodes
+        /// </summary>
+        private WordsNodes _wordsNodes;
 
         /// <summary>
         /// 敏感词选项
@@ -52,6 +57,16 @@ namespace SensitiveWords
         /// <param name="replaceOptions">替换选项</param>
         public SensitiveWordsOptions(HandleOptions handleOptions, ReplaceOptions replaceOptions)
         {
+            if (0 != (handleOptions & ~(HandleOptions.Default | HandleOptions.Input | HandleOptions.Output)) || handleOptions < HandleOptions.Default)
+            {
+                throw new ArgumentOutOfRangeException(nameof(handleOptions));
+            }
+
+            if (0 != (replaceOptions & ~(ReplaceOptions.Character | ReplaceOptions.PinYin | ReplaceOptions.JianPin | ReplaceOptions.Homophone)) || replaceOptions < ReplaceOptions.Character)
+            {
+                throw new ArgumentOutOfRangeException(nameof(replaceOptions));
+            }
+
             HandleOptions = handleOptions;
             ReplaceOptions = replaceOptions;
         }
@@ -64,12 +79,22 @@ namespace SensitiveWords
         /// <param name="character">替换字符串</param>
         /// <param name="ignoreCase">忽略大小写</param>
         /// <param name="replaceSingle">替换为单个不补位</param>
-        /// <param name="groupReplaceOptions">组替换选项</param>
+        /// <param name="groupReplaceOptions">正则组替换选项</param>
         /// <param name="isMaxMatch">优先匹配最大长度（正则下不生效）</param>
         /// <param name="whiteSpaceOptions">空字符选项</param>
         public SensitiveWordsOptions(HandleOptions handleOptions, ReplaceOptions replaceOptions, string character, bool ignoreCase = false, bool replaceSingle = false, GroupReplaceOptions groupReplaceOptions = GroupReplaceOptions.Default, bool isMaxMatch = true, WhiteSpaceOptions whiteSpaceOptions = WhiteSpaceOptions.Default)
             : this(handleOptions, replaceOptions)
         {
+            if (0 != (groupReplaceOptions & ~(GroupReplaceOptions.Default | GroupReplaceOptions.GroupOnly | GroupReplaceOptions.GroupPriority)) || groupReplaceOptions < GroupReplaceOptions.Default)
+            {
+                throw new ArgumentOutOfRangeException(nameof(groupReplaceOptions));
+            }
+
+            if (0 != (whiteSpaceOptions & ~(WhiteSpaceOptions.Default | WhiteSpaceOptions.IgnoreWhiteSpace | WhiteSpaceOptions.IgnoreNewLine)) || whiteSpaceOptions < WhiteSpaceOptions.Default)
+            {
+                throw new ArgumentOutOfRangeException(nameof(whiteSpaceOptions));
+            }
+
             Character = character;
             IgnoreCase = ignoreCase;
             ReplaceSingle = replaceSingle;
@@ -104,7 +129,7 @@ namespace SensitiveWords
         public bool ReplaceSingle { get; set; }
 
         /// <summary>
-        /// 组替换选项
+        /// 正则组替换选项
         /// </summary>
         public GroupReplaceOptions GroupReplaceOptions { get; set; }
 
@@ -138,14 +163,14 @@ namespace SensitiveWords
             {
                 if (!IsRegex(word))
                 {
-                    SimpleSensitiveWords.Add(word);
+                    _simpleSensitiveWords.Add(word);
                 }
                 else
                 {
-                    RegexSensitiveWords.Add(word);
+                    _regexSensitiveWords.Add(word);
                 }
 
-                SensitiveWords.Add(word);
+                _sensitiveWords.Add(word);
             });
 
             return this;
@@ -182,12 +207,7 @@ namespace SensitiveWords
         /// <exception cref="ArgumentNullException"></exception>
         public SensitiveWordsOptions SetTag(string tag)
         {
-            if (null == tag)
-            {
-                throw new ArgumentNullException(nameof(tag));
-            }
-
-            Tag = tag;
+            Tag = tag ?? throw new ArgumentNullException(nameof(tag));
 
             return this;
         }
@@ -202,9 +222,9 @@ namespace SensitiveWords
             bool result = false;
             ClassificationWords(words, word =>
             {
-                if (result |= SimpleSensitiveWords.Remove(word) || RegexSensitiveWords.Remove(word))
+                if (result |= _simpleSensitiveWords.Remove(word) || _regexSensitiveWords.Remove(word))
                 {
-                    SensitiveWords.Remove(word);
+                    _sensitiveWords.Remove(word);
                 }
             });
 
@@ -217,7 +237,7 @@ namespace SensitiveWords
         /// <returns></returns>
         public SensitiveWordsOptions Build()
         {
-            WordsNodes = WordsNodes.Build(SimpleSensitiveWords, IgnoreCase);
+            _wordsNodes = WordsNodes.Build(_simpleSensitiveWords, IgnoreCase);
 
             return this;
         }
@@ -226,32 +246,38 @@ namespace SensitiveWords
         /// 获取敏感词
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<string> GetSensitiveWords() => SimpleSensitiveWords.AsEnumerable().Union(RegexSensitiveWords);
+        public IReadOnlyCollection<string> GetSensitiveWords() => _sensitiveWords;
 
         /// <summary>
         /// 是否存在指定敏感词
         /// </summary>
         /// <param name="word"></param>
         /// <returns></returns>
-        public bool Contains(string word) => SimpleSensitiveWords.Contains(word) || RegexSensitiveWords.Contains(word);
+        public bool Contains(string word) => _sensitiveWords.Contains(word);
 
         /// <summary>
         /// Replace
         /// </summary>
         /// <param name="value"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        internal string Replace(string value)
+        public string Replace(string value, CancellationToken cancellationToken = default)
         {
             if (!string.IsNullOrEmpty(value))
             {
-                if (null != WordsNodes)
+                if (null != _wordsNodes)
                 {
-                    value = WordsNodes.Replace(value, MatchEvaluator, IsMaxMatch, WhiteSpaceOptions);
+                    value = _wordsNodes.Replace(value, MatchEvaluator, IsMaxMatch, WhiteSpaceOptions, cancellationToken);
                 }
 
-                foreach (var word in RegexSensitiveWords)
+                foreach (var word in _regexSensitiveWords)
                 {
-                    value = Regex.Replace(value, word, MatchEvaluator, IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    value = Task.Factory.StartNew(() => Regex.Replace(value, word, MatchEvaluator, IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None), cancellationToken)
+                        .ConfigureAwait(false)
+                        .GetAwaiter()
+                        .GetResult();
                 }
             }
 
@@ -259,29 +285,67 @@ namespace SensitiveWords
         }
 
         /// <summary>
-        /// IsMatch
+        /// 是否匹配上敏感词
         /// </summary>
         /// <param name="value"></param>
+        /// <param name="options"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        internal bool IsMatch(string value)
+        public bool IsMatch(string value, DesensitizeOptions options = null, CancellationToken cancellationToken = default)
         {
             if (!string.IsNullOrEmpty(value))
             {
-                if (null != WordsNodes && WordsNodes.Matches(value, IsMaxMatch, WhiteSpaceOptions).Any())
+                if (null != _wordsNodes && _wordsNodes.Matches(value, IsMaxMatch, WhiteSpaceOptions, cancellationToken).Count > 0)
                 {
                     return true;
                 }
 
-                foreach (var word in RegexSensitiveWords)
+                var matchCount = 0;
+                Parallel.ForEach(_regexSensitiveWords, (options ?? DesensitizeOptions.Default).GetParallelOptions(cancellationToken), (word, state) =>
                 {
                     if (Regex.IsMatch(value, word))
                     {
-                        return true;
+                        state.Stop();
+
+                        Interlocked.Increment(ref matchCount);
                     }
-                }
+                });
+
+                return matchCount > 0;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 匹配敏感词
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public MatchResult Matches(string value, CancellationToken cancellationToken = default)
+        {
+            var matchResult = new MatchResult(this);
+
+            if (!string.IsNullOrEmpty(value))
+            {
+                if (null != _wordsNodes)
+                {
+                    matchResult.NodeCaptures = _wordsNodes.Matches(value, IsMaxMatch, WhiteSpaceOptions, cancellationToken);
+                }
+
+                foreach (var word in _regexSensitiveWords)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    matchResult.RegexMatches = Task.Factory.StartNew(() => Regex.Matches(value, word, IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None), cancellationToken)
+                        .ConfigureAwait(false)
+                        .GetAwaiter()
+                        .GetResult();
+                }
+            }
+
+            return matchResult;
         }
 
         /// <summary>
@@ -406,10 +470,10 @@ namespace SensitiveWords
                             {
                                 if (i > position)
                                 {
-                                    var value = words.Substring(position, i - position);
-                                    if (!string.IsNullOrWhiteSpace(value))
+                                    var value = words.AsSpan(position, i - position);
+                                    if (!value.IsEmpty)
                                     {
-                                        action(value);
+                                        action(value.ToString());
                                     }
                                 }
 
@@ -434,10 +498,10 @@ namespace SensitiveWords
 
                 if (i == words.Length - 1 && i >= position)
                 {
-                    var value = words.Substring(position);
-                    if (!string.IsNullOrWhiteSpace(value))
+                    var value = words.AsSpan(position);
+                    if (!value.IsEmpty)
                     {
-                        action(value);
+                        action(value.ToString());
                     }
                 }
             }

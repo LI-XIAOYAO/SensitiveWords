@@ -26,5 +26,24 @@ namespace SensitiveWords
                 }
             }
         }
+
+        /// <summary>
+        /// 通过处理选项获取敏感词选项
+        /// </summary>
+        /// <param name="options"></param>
+        /// <returns></returns>
+        public IEnumerable<SensitiveWordsOptions> this[HandleOptions options]
+        {
+            get
+            {
+                foreach (var item in Items)
+                {
+                    if ((item.HandleOptions & options) > 0)
+                    {
+                        yield return item;
+                    }
+                }
+            }
+        }
     }
 }

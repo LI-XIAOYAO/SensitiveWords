@@ -1,15 +1,14 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 
 namespace SensitiveWords
 {
     /// <summary>
-    /// 单词节点
+    /// 字符节点
     /// </summary>
     public class WordsNode
     {
         /// <summary>
-        /// 单词节点
+        /// 字符节点
         /// </summary>
         /// <param name="value"></param>
         /// <param name="isEnd"></param>
@@ -19,9 +18,13 @@ namespace SensitiveWords
             Value = value;
             IsEnd = isEnd;
             IgnoreCase = ignoreCase;
+            Nodes = new WordsNodes(IgnoreCase);
         }
 
-        private bool IgnoreCase { get; }
+        /// <summary>
+        /// 是否忽略大小写
+        /// </summary>
+        public bool IgnoreCase { get; }
 
         /// <summary>
         /// 字符值
@@ -36,12 +39,12 @@ namespace SensitiveWords
         /// <summary>
         /// 子节点
         /// </summary>
-        public WordsNodes Nodes { get; } = new WordsNodes();
+        public WordsNodes Nodes { get; }
 
         /// <summary>
         /// 有效词组数
         /// </summary>
-        public int WordsCount => IsEnd.GetHashCode() + Nodes.Sum(c => c.WordsCount);
+        public int WordsCount => IsEnd.GetHashCode() + Nodes.Values.Sum(c => c.WordsCount);
 
         /// <summary>
         /// 创建节点
@@ -57,13 +60,6 @@ namespace SensitiveWords
         /// </summary>
         /// <returns></returns>
         public bool HasNodes() => Nodes.Count > 0;
-
-        /// <summary>
-        /// 比较单词是否相等
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public bool ValueEquals(char value) => this.Value == value || (IgnoreCase && StringComparer.OrdinalIgnoreCase.Equals(this.Value.ToString(), value.ToString()));
 
         /// <summary>
         /// <inheritdoc/>

@@ -1,12 +1,12 @@
 ﻿namespace SensitiveWords
 {
     /// <summary>
-    /// 组替换选项
+    /// 正则组替换选项
     /// </summary>
     public enum GroupReplaceOptions
     {
         /// <summary>
-        /// 默认替换匹配
+        /// 默认，替换匹配
         /// </summary>
         Default = 1,
 

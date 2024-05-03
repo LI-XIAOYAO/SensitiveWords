@@ -7,25 +7,68 @@ namespace SensitiveWords
     /// </summary>
     public class PinYinInfoCollection : InternalReadOnlyCollection<PinYinInfo>
     {
+        private long _version;
+        private long _lastVersion = -1;
+        private string _chars;
+        private string _pinYin;
+        private string _jianPin;
+        private string _homophone;
+
+        internal PinYinInfoCollection()
+        {
+        }
+
         /// <summary>
         /// 字符串
         /// </summary>
-        public string Chars { get; private set; }
+        public string Chars
+        {
+            get
+            {
+                Refresh();
+
+                return _chars;
+            }
+        }
 
         /// <summary>
         /// 拼音
         /// </summary>
-        public string PinYin { get; private set; }
+        public string PinYin
+        {
+            get
+            {
+                Refresh();
+
+                return _pinYin;
+            }
+        }
 
         /// <summary>
         /// 简拼
         /// </summary>
-        public string JianPin { get; private set; }
+        public string JianPin
+        {
+            get
+            {
+                Refresh();
+
+                return _jianPin;
+            }
+        }
 
         /// <summary>
         /// 同音字
         /// </summary>
-        public string Homophone { get; private set; }
+        public string Homophone
+        {
+            get
+            {
+                Refresh();
+
+                return _homophone;
+            }
+        }
 
         /// <summary>
         /// <inheritdoc/>
@@ -35,7 +78,7 @@ namespace SensitiveWords
         {
             base.Add(item);
 
-            Refresh();
+            _version++;
         }
 
         /// <summary>
@@ -46,7 +89,7 @@ namespace SensitiveWords
         {
             base.Remove(item);
 
-            Refresh();
+            _version++;
         }
 
         /// <summary>
@@ -57,7 +100,7 @@ namespace SensitiveWords
         {
             base.RemoveAt(index);
 
-            Refresh();
+            _version++;
         }
 
         /// <summary>
@@ -67,7 +110,7 @@ namespace SensitiveWords
         {
             base.Clear();
 
-            Refresh();
+            _version++;
         }
 
         /// <summary>
@@ -75,13 +118,20 @@ namespace SensitiveWords
         /// </summary>
         private void Refresh()
         {
+            if (_version == _lastVersion)
+            {
+                return;
+            }
+
             var stringBuilder = new StringBuilder();
             var pyStringBuilder = new StringBuilder();
             var jpStringBuilder = new StringBuilder();
             var hStringBuilder = new StringBuilder();
-            foreach (var pinYinInfo in Items)
+
+            foreach (var pinYinInfo in this)
             {
                 stringBuilder.Append(pinYinInfo.Char);
+
                 if (null != pinYinInfo.PinYin)
                 {
                     pyStringBuilder.Append(pinYinInfo.PinYin);
@@ -96,10 +146,12 @@ namespace SensitiveWords
                 hStringBuilder.Append(null != pinYinInfo.Homophone && pinYinInfo.Homophone.Count > 0 ? pinYinInfo.Homophone[0] : pinYinInfo.Char);
             }
 
-            Chars = stringBuilder.ToString();
-            PinYin = pyStringBuilder.ToString();
-            JianPin = jpStringBuilder.ToString();
-            Homophone = hStringBuilder.ToString();
+            _chars = stringBuilder.ToString();
+            _pinYin = pyStringBuilder.ToString();
+            _jianPin = jpStringBuilder.ToString();
+            _homophone = hStringBuilder.ToString();
+
+            _lastVersion = _version;
         }
     }
 }

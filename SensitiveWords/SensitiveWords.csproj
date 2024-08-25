@@ -10,7 +10,7 @@
 		<PackageProjectUrl>https://github.com/LI-XIAOYAO/SensitiveWords</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/LI-XIAOYAO/SensitiveWords</RepositoryUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<VersionPrefix>1.0.9</VersionPrefix>
+		<VersionPrefix>1.1.0</VersionPrefix>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -18,8 +18,8 @@ services.AddSensitiveWords(sensitiveWordsOptions =>
     sensitiveWordsOptions.Add(new SensitiveWordsOptions(HandleOptions.Input, ReplaceOptions.Character, "*", true, false, GroupReplaceOptions.GroupPriority)
         .Add("牛皮|反对").Build());
     sensitiveWordsOptions.Add(new SensitiveWordsOptions(HandleOptions.Output, ReplaceOptions.Character, "*", true, false, GroupReplaceOptions.GroupPriority)
-        .Add(@"\w{4}(\w+(?:[-+.]\w+)*)@\w+(?:[-.]\w+)*\.\w+(?:[-.]\w+)*")
-        .Add(@"(?:13[0-9]|14[0-14-9]|15[0-35-9]|16[25-7]|17[0-8]|18[0-9]|19[0-35-9])(\d{4})\d{4}")
+        .AddRegex(@"\w{4}(\w+(?:[-+.]\w+)*)@\w+(?:[-.]\w+)*\.\w+(?:[-.]\w+)*")
+        .AddRegex(@"(?:13[0-9]|14[0-14-9]|15[0-35-9]|16[25-7]|17[0-8]|18[0-9]|19[0-35-9])(\d{4})\d{4}")
 		.Build()
     );
 });
@@ -42,8 +42,8 @@ using SensitiveWords;
 		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true).Add("啊啊|zf|666").Build());
 		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "?", true).Add("操|文|NM").Build());
 		options.Add(new SensitiveWordsOptions(HandleOptions.Default | HandleOptions.Output, ReplaceOptions.Character, "*", true, groupReplaceOptions: GroupReplaceOptions.GroupPriority)
-			.Add(@"\w{4}(\w+(?:[-+.]\w+)*)@\w+(?:[-.]\w+)*\.\w+(?:[-.]\w+)*")
-			.Add(@"(?:13[0-9]|14[0-14-9]|15[0-35-9]|16[25-7]|17[0-8]|18[0-9]|19[0-35-9])(\d{4})\d{4}")
+			.AddRegex(@"\w{4}(\w+(?:[-+.]\w+)*)@\w+(?:[-.]\w+)*\.\w+(?:[-.]\w+)*")
+			.AddRegex(@"(?:13[0-9]|14[0-14-9]|15[0-35-9]|16[25-7]|17[0-8]|18[0-9]|19[0-35-9])(\d{4})\d{4}")
 			.Build()
 		);
 	});
@@ -71,7 +71,7 @@ using SensitiveWords;
 
 	SensitiveWordsResolver.Config(options =>
 		options.Add(new SensitiveWordsOptions(HandleOptions.Default, ReplaceOptions.Character, "*", true, groupReplaceOptions: GroupReplaceOptions.GroupPriority)
-			.Add(@"政治(?!老师|家)").Build()
+			.AddRegex(@"政治(?!老师|家)").Build()
 		)
 	);
 	"一个政治老师在谈政治话题".Desensitize(); // Output: 一个政治老师在谈**话题
@@ -118,10 +118,12 @@ using SensitiveWords;
     	- `IgnoreNewLine`：忽略换行符
 	- `Tag` 标签，可通过特性 `SensitiveWordsAttribute` 指定处理
 - 方法
-	- `Add` 添加敏感词，多个英文竖线|分隔，包含竖线需要转义，支持正则
-	- `AddFile` 添加文件敏感词，文本内容规则一致
+	- `Add` 添加敏感词，多个英文竖线|分隔，包含竖线需要转义
+	- `AddRegex` 添加正则敏感词，多个英文竖线|分隔，包含竖线需要转义
+	- `AddFile` 添加文件敏感词，同文本规则
+	- `AddRegexFile` 添加正则文件敏感词
 	- `SetTag` 设置标签
 	- `Remove` 删除敏感词
-	- `Build` 构建敏感词选项（添加删除非正则敏感词后调用生效）
+	- `Build` 构建敏感词，添加删除敏感词后调用生效
 
 多音字词组添加：`SensitiveWordsResolver.RegisterHomophoneRegexWordGroup(...)` 存在多音字时无法区分，可通过添加词组确定

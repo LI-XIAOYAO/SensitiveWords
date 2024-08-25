@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace SensitiveWords
 {
@@ -25,7 +26,7 @@ namespace SensitiveWords
         /// <summary>
         /// 匹配上的正则敏感词
         /// </summary>
-        public MatchCollection RegexMatches { get; internal set; }
+        public IReadOnlyList<Match> RegexMatches { get; internal set; }
 
         /// <summary>
         /// 是否匹配上敏感词

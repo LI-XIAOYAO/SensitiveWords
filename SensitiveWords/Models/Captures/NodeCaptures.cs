@@ -21,7 +21,8 @@ namespace SensitiveWords
                 return;
             }
 
-            var isIgnoreWhiteSpace = (whiteSpaceOptions & (WhiteSpaceOptions.IgnoreWhiteSpace | WhiteSpaceOptions.IgnoreNewLine)) > 0;
+            var isIgnoreWhiteSpace = (whiteSpaceOptions & WhiteSpaceOptions.IgnoreWhiteSpace) > 0;
+            var isIgnoreNewLine = (whiteSpaceOptions & WhiteSpaceOptions.IgnoreNewLine) > 0;
 
             for (int i = 0, position = 0; i < value.Length; position = ++i)
             {
@@ -37,9 +38,9 @@ namespace SensitiveWords
                 if (i < value.Length)
                 {
                     var node = nodes[value[i]];
-                    if (null == node && i > position && isIgnoreWhiteSpace)
+                    if (null == node && i > position && (isIgnoreWhiteSpace || isIgnoreNewLine))
                     {
-                        node = nodes[value[i = MoveIndex(value, i, whiteSpaceOptions, cancellationToken)]];
+                        node = nodes[value[i = MoveIndex(value, i, isIgnoreWhiteSpace, isIgnoreNewLine, cancellationToken)]];
                     }
 
                     if (null != node)
@@ -107,13 +108,13 @@ namespace SensitiveWords
         /// </summary>
         /// <param name="text"></param>
         /// <param name="index"></param>
-        /// <param name="whiteSpaceOptions"></param>
+        /// <param name="isIgnoreWhiteSpace"></param>
+        /// <param name="isIgnoreNewLine"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private static int MoveIndex(string text, int index, WhiteSpaceOptions whiteSpaceOptions, CancellationToken cancellationToken)
+        private static int MoveIndex(string text, int index, bool isIgnoreWhiteSpace, bool isIgnoreNewLine, CancellationToken cancellationToken)
         {
-            while ((((whiteSpaceOptions & WhiteSpaceOptions.IgnoreWhiteSpace) > 0 && text[index] is ' ') || ((whiteSpaceOptions & WhiteSpaceOptions.IgnoreNewLine) > 0 && (text[index] is '\r' || text[index] is '\n')))
-                && index < text.Length - 1)
+            while (((isIgnoreWhiteSpace && text[index] is ' ') || (isIgnoreNewLine && (text[index] is '\r' || text[index] is '\n'))) && index < text.Length - 1)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 

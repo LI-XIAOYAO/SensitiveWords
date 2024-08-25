@@ -45,5 +45,18 @@ namespace SensitiveWords
                 }
             }
         }
+
+        /// <summary>
+        /// 获取指定索引值
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public new SensitiveWordsOptions this[int index]
+        {
+            get
+            {
+                return Items[index];
+            }
+        }
     }
 }

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0;net7.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.0;net9.0;net10.0</TargetFrameworks>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<Authors>Lxy</Authors>
 		<Description>字符串脱敏，输入输出多种处理模式，支持字符、拼音、简拼、同音字等替换模式，支持正则。</Description>
@@ -21,7 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Json" Version="2.1.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Json" Version="2.3.12" />
 		<PackageReference Include="PinYinConverterCore" Version="1.0.2" />
 	</ItemGroup>
 

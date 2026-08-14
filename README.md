@@ -91,6 +91,7 @@ using SensitiveWords;
 #### 其他
 特性：
 - 忽略特性 `IgnoreSensitiveWordsAttribute`
+- 忽略特性 `IgnoreApiSensitiveWordsAttribute`
 - 指定处理标签特性 `SensitiveWordsAttribute` 通过 `new SensitiveWordsOptions().SetTag("Tag")` 配置标签
 
 `SensitiveWordsOptions`：敏感词配置选项

@@ -166,6 +166,9 @@ namespace SensitiveWords.Tests
             var httpClient = application.CreateClient();
             var response = await httpClient.GetStringAsync("User/GetUser?name=专家只会吹牛皮");
             Assert.Equal("{\"name\":\"专家只会吹**\",\"mail\":\"1122****@mail.com\",\"phone\":\"166****3333\"}", response);
+
+            response = await httpClient.GetStringAsync("User/GetUser1?name=专家只会吹牛皮");
+            Assert.Equal("{\"name\":\"专家只会吹牛皮\",\"mail\":\"11223344@mail.com\",\"phone\":\"16655553333\"}", response);
         }
 
         [InlineData(true)]

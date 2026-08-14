@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SensitiveWords;
 
 namespace AppTest.Controllers
 {
@@ -15,6 +16,18 @@ namespace AppTest.Controllers
 
         [HttpGet("GetUser")]
         public User Get(string name)
+        {
+            return new User
+            {
+                Name = name,
+                Mail = "11223344@mail.com",
+                Phone = "16655553333"
+            };
+        }
+
+        [IgnoreApiSensitiveWords()]
+        [HttpGet("GetUser1")]
+        public User GetUser1(string name)
         {
             return new User
             {
